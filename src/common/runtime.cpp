@@ -410,7 +410,7 @@ int luax_assert_nilerror(lua_State *L, int idx)
 	if (lua_isnoneornil(L, idx))
 	{
 		if (lua_isstring(L, idx + 1))
-			return luaL_error(L, lua_tostring(L, idx + 1));
+			return luaL_error(L, "%s", lua_tostring(L, idx + 1));
 		else
 			return luaL_error(L, "assertion failed!");
 	}

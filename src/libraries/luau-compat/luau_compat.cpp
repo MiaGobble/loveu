@@ -312,6 +312,46 @@ static int ll_require(lua_State *L)
 	return 1;
 }
 
+static int w_collectgarbage(lua_State *L)
+{
+	/* Luau does not ship collectgarbage; provide a Lua 5.1-compatible subset. */
+	const char *option = luaL_optstring(L, 1, "collect");
+	if (strcmp(option, "collect") == 0)
+	{
+		lua_gc(L, LUA_GCCOLLECT, 0);
+		return 0;
+	}
+	if (strcmp(option, "count") == 0)
+	{
+		int kb = lua_gc(L, LUA_GCCOUNT, 0);
+		int b = lua_gc(L, LUA_GCCOUNTB, 0);
+		lua_pushnumber(L, (lua_Number)kb + (lua_Number)b / 1024.0);
+		return 1;
+	}
+	if (strcmp(option, "stop") == 0)
+	{
+		lua_gc(L, LUA_GCSTOP, 0);
+		return 0;
+	}
+	if (strcmp(option, "restart") == 0)
+	{
+		lua_gc(L, LUA_GCRESTART, 0);
+		return 0;
+	}
+	if (strcmp(option, "isrunning") == 0)
+	{
+		lua_pushboolean(L, lua_gc(L, LUA_GCISRUNNING, 0));
+		return 1;
+	}
+	if (strcmp(option, "step") == 0)
+	{
+		int data = (int)luaL_optinteger(L, 2, 0);
+		lua_pushboolean(L, lua_gc(L, LUA_GCSTEP, data));
+		return 1;
+	}
+	return luaL_error(L, "collectgarbage '%s' not supported", option);
+}
+
 static int w_loadstring(lua_State *L)
 {
 	size_t len = 0;
@@ -397,6 +437,9 @@ int luaopen_love_package(lua_State *L)
 
 	lua_pushcfunction(L, w_load);
 	lua_setglobal(L, "load");
+
+	lua_pushcfunction(L, w_collectgarbage);
+	lua_setglobal(L, "collectgarbage");
 
 	open_bit_alias(L);
 	return 0;

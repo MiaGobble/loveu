@@ -757,7 +757,7 @@ int w__openConsole(lua_State *L)
 	const char *err = nullptr;
 	bool isopen = love_openConsole(err);
 	if (err != nullptr)
-		return luaL_error(L, err);
+		return luaL_error(L, "%s", err);
 	love::luax_pushboolean(L, isopen);
 	return 1;
 }
