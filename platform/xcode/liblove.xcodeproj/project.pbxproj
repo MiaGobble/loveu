@@ -5630,7 +5630,11 @@
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = LOVE_APPLE_USE_FRAMEWORKS;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					LOVE_APPLE_USE_FRAMEWORKS,
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
@@ -5696,6 +5700,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					LOVE_APPLE_USE_FRAMEWORKS,
 					"DEBUG=1",
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5737,6 +5743,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5752,6 +5760,10 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5781,6 +5793,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
@@ -5795,6 +5809,10 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5825,6 +5843,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
@@ -5839,6 +5859,10 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5888,7 +5912,11 @@
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = LOVE_APPLE_USE_FRAMEWORKS;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					LOVE_APPLE_USE_FRAMEWORKS,
+					LOVE_LUAU=1,
+					LUA_USE_LONGJMP=1,
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
@@ -5949,6 +5977,10 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",
@@ -5995,6 +6027,10 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",
@@ -6042,6 +6078,10 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
+				OTHER_CPLUSPLUSFLAGS = (
+					$(inherited),
+					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
+				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",

@@ -6,9 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <lua.h>
 #include <lualib.h>
 #include <luacode.h>
+#ifdef __cplusplus
+}
+#endif
 #include "luau_compat.h"
 
 #ifndef LUA_ERRFILE

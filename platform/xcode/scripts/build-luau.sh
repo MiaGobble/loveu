@@ -23,7 +23,16 @@ BUILD_DIR="$OUT_DIR/cmake"
 
 mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
+# Prefer Ninja when available (fast, predictable); fall back to Unix Makefiles.
+GENERATOR=()
+if command -v ninja >/dev/null 2>&1; then
+  GENERATOR=(-G Ninja)
+else
+  GENERATOR=(-G "Unix Makefiles")
+fi
+
 CMAKE_ARGS=(
+  "${GENERATOR[@]}"
   -S "$LUAU_SRC"
   -B "$BUILD_DIR"
   -DCMAKE_BUILD_TYPE=Release
@@ -56,26 +65,24 @@ case "$PLATFORM_NAME" in
     ;;
 esac
 
+echo "Configuring Luau for $PLATFORM_NAME..."
 cmake "${CMAKE_ARGS[@]}"
 cmake --build "$BUILD_DIR" --config Release --target Luau.VM Luau.Compiler Luau.Ast Luau.Bytecode Luau.Common -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 # Copy/link archives into a flat directory for OTHER_LDFLAGS -l search.
 shopt -s nullglob
-for lib in \
-  "$BUILD_DIR"/libLuau.*.a \
-  "$BUILD_DIR"/Release/libLuau.*.a \
-  "$BUILD_DIR"/*/libLuau.*.a \
-  "$BUILD_DIR"/*/*/libLuau.*.a
-do
-  base="$(basename "$lib")"
-  cp -f "$lib" "$OUT_DIR/$base"
-done
-
-# Fallback: find by name
+copied=0
 while IFS= read -r lib; do
   base="$(basename "$lib")"
   cp -f "$lib" "$OUT_DIR/$base"
+  copied=$((copied + 1))
 done < <(find "$BUILD_DIR" -name 'libLuau.*.a' 2>/dev/null)
 
-echo "Luau libraries installed to $OUT_DIR"
+if [[ "$copied" -eq 0 ]]; then
+  echo "error: no libLuau.*.a produced under $BUILD_DIR" >&2
+  find "$BUILD_DIR" -name '*.a' 2>/dev/null | head -50 >&2 || true
+  exit 1
+fi
+
+echo "Luau libraries installed to $OUT_DIR ($copied archives)"
 ls -la "$OUT_DIR"/libLuau.*.a

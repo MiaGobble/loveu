@@ -538,7 +538,7 @@ jobs:
         mv apple-dependencies/shared platform/xcode
     - name: Build
       run:
-        xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15'
+        xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 
   Android:
     runs-on: ubuntu-latest

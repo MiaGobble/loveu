@@ -69,20 +69,27 @@
 #include "lualib.h"
 #include "lstrlib.h"
 
-#if LUA_VERSION_NUM == 501
-typedef size_t lua_Unsigned;
-#endif
-
-#if LUA_VERSION_NUM >= 504
-#   define LUAL_BUFFER53_BUFFER(B) (B)->b.b
-#elif LUA_VERSION_NUM == 501
+#if defined(LOVE_LUAU)
+/* Luau already provides lua_Unsigned; buffer layout differs from PUC 5.1. */
 #	define LUAL_BUFFER53_BUFFER(B) (B)->b.buffer
+#elif LUA_VERSION_NUM == 501
+typedef size_t lua_Unsigned;
+#	define LUAL_BUFFER53_BUFFER(B) (B)->b.buffer
+#elif LUA_VERSION_NUM >= 504
+#	define LUAL_BUFFER53_BUFFER(B) (B)->b.b
 #else
 #	define LUAL_BUFFER53_BUFFER(B) (B)->b.initb
 #endif
 
 static void luaL_buffinit_53 (lua_State *L, luaL_Buffer_53 *B) {
-#if LUA_VERSION_NUM == 501
+#if defined(LOVE_LUAU)
+	/* Own ptr/nelems/capacity; use Luau's inline buffer as initial storage. */
+	memset(&B->b, 0, sizeof(B->b));
+	B->ptr = B->b.buffer;
+	B->capacity = LUA_BUFFERSIZE;
+	B->nelems = 0;
+	B->L2 = L;
+#elif LUA_VERSION_NUM == 501
 	/* make it crash if used via pointer to a 5.1-style luaL_Buffer */
 	B->b.p = NULL;
 	B->b.L = NULL;
@@ -99,7 +106,7 @@ static void luaL_buffinit_53 (lua_State *L, luaL_Buffer_53 *B) {
 
 
 static char *luaL_prepbuffsize_53 (luaL_Buffer_53 *B, size_t s) {
-#if LUA_VERSION_NUM == 501
+#if defined(LOVE_LUAU) || LUA_VERSION_NUM == 501
 	if (B->capacity - B->nelems < s) { /* needs to grow */
 		char* newptr = NULL;
 		size_t newcap = B->capacity * 2;
@@ -109,7 +116,7 @@ static char *luaL_prepbuffsize_53 (luaL_Buffer_53 *B, size_t s) {
 			luaL_error(B->L2, "buffer too large");
 		newptr = (char*)lua_newuserdata(B->L2, newcap);
 		memcpy(newptr, B->ptr, B->nelems);
-		if (B->ptr != B->b.buffer)
+		if (B->ptr != LUAL_BUFFER53_BUFFER(B))
 			lua_replace(B->L2, -2); /* remove old buffer */
 		B->ptr = newptr;
 		B->capacity = newcap;

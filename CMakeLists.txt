@@ -107,6 +107,25 @@ else()
 	FetchContent_MakeAvailable(luau)
 endif()
 
+# LUAU_EXTERN_C sets INTERFACE LUA_API=extern "C", which is invalid in .c TUs
+# (luasocket, lua53). Keep LUA_USE_LONGJMP for C-friendly error handling; C++
+# callers already wrap Luau headers in extern "C" { ... }.
+foreach(_love_luau_tgt Luau.VM Luau.Compiler Luau.CodeGen)
+	if(TARGET ${_love_luau_tgt})
+		get_target_property(_love_luau_defs ${_love_luau_tgt} INTERFACE_COMPILE_DEFINITIONS)
+		if(_love_luau_defs)
+			set(_love_luau_newdefs "")
+			foreach(_love_luau_def ${_love_luau_defs})
+				if(NOT _love_luau_def MATCHES "^LUA_API=" AND NOT _love_luau_def MATCHES "^LUACODE_API=" AND NOT _love_luau_def MATCHES "^LUACODEGEN_API=")
+					list(APPEND _love_luau_newdefs "${_love_luau_def}")
+				endif()
+			endforeach()
+			set_property(TARGET ${_love_luau_tgt} PROPERTY INTERFACE_COMPILE_DEFINITIONS "${_love_luau_newdefs}")
+		endif()
+		target_compile_definitions(${_love_luau_tgt} PUBLIC LUA_USE_LONGJMP=1)
+	endif()
+endforeach()
+
 add_library(lovedep::SDL INTERFACE IMPORTED)
 add_library(lovedep::Freetype INTERFACE IMPORTED)
 add_library(lovedep::Harfbuzz INTERFACE IMPORTED)
@@ -219,6 +238,17 @@ target_include_directories(love_luau_compat PUBLIC
 )
 target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
 target_link_libraries(lovedep_Lua INTERFACE love_luau_compat)
+target_compile_definitions(lovedep_Lua INTERFACE LOVE_LUAU=1)
+# C++ TUs need LUA_API=extern "C" to match LUAU_EXTERN_C libs; .c TUs must not see that.
+if(MSVC)
+	target_compile_options(lovedep_Lua INTERFACE
+		$<$<COMPILE_LANGUAGE:CXX>:/FI${CMAKE_CURRENT_SOURCE_DIR}/src/common/luau_cxx_linkage.h>
+	)
+else()
+	target_compile_options(lovedep_Lua INTERFACE
+		$<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/src/common/luau_cxx_linkage.h>
+	)
+endif()
 
 ###
 ### No Megasource-specific stuff beyond this point!
