@@ -6,6 +6,7 @@
 #include "auxiliar.h"
 #include "options.h"
 #include "inet.h"
+#include <stdio.h>
 #include <string.h>
 
 /*=========================================================================*\

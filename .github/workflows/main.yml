@@ -337,8 +337,8 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
         echo 'check dir'
-        ls
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers opengl
+        dir install
+        powershell.exe -NoProfile -Command "& { $ErrorActionPreference='Continue'; & './install/lovec.exe' './megasource/libs/love/testing/main.luau' '--all' '--isRunner' '--renderers' 'opengl' 2>&1 | ForEach-Object { $_ }; exit $LASTEXITCODE }"
     - name: Love Test Report (opengl)
       id: report1
       if: steps.vars.outputs.arch != 'ARM64'

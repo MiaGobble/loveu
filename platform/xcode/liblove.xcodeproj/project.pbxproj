@@ -2465,7 +2465,7 @@
 				B0A11C01C01C01C01C01C004 /* luau_compat.h */,
 				B0A11C01C01C01C01C01C006 /* lauxlib.h */,
 			);
-			path = include;
+			path = "include";
 			sourceTree = "<group>";
 		};
 		B0A11C01C01C01C01C01C020 /* luau-compat */ = {
@@ -2474,7 +2474,7 @@
 				B0A11C01C01C01C01C01C001 /* luau_compat.cpp */,
 				B0A11C01C01C01C01C01C021 /* include */,
 			);
-			path = ../../src/libraries/luau-compat;
+			path = "../../src/libraries/luau-compat";
 			sourceTree = "<group>";
 		};
 		FA0B78F61A958E3B000E1D17 /* common */ = {
@@ -2610,7 +2610,7 @@
 			children = (
 				FA0B79C01A958EA3000E1D17 /* enet */,
 			);
-			path = include;
+			path = "include";
 			sourceTree = "<group>";
 		};
 		FA0B79C01A958EA3000E1D17 /* enet */ = {
@@ -3574,7 +3574,7 @@
 			children = (
 				FA18CEF623DCF67800263725 /* spirv_cross */,
 			);
-			path = include;
+			path = "include";
 			sourceTree = "<group>";
 		};
 		FA18CEF623DCF67800263725 /* spirv_cross */ = {
@@ -5648,8 +5648,8 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					LOVE_APPLE_USE_FRAMEWORKS,
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5716,8 +5716,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					LOVE_APPLE_USE_FRAMEWORKS,
 					"DEBUG=1",
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5759,8 +5759,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5805,8 +5805,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
@@ -5851,8 +5851,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
@@ -5918,8 +5918,8 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					LOVE_APPLE_USE_FRAMEWORKS,
-					LOVE_LUAU=1,
-					LUA_USE_LONGJMP=1,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;

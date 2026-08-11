@@ -370,7 +370,7 @@ love.test.filesystem.mountFullPath = function(test)
   local mount = love.filesystem.mountFullPath(love.filesystem.getSource() .. '/tests', 'tests', 'read')
   test:assertTrue(mount, 'check can mount')
   -- check reading file through mounted path label
-  local contents, _ = love.filesystem.read('tests/audio.lua')
+  local contents, _ = love.filesystem.read('tests/audio.luau')
   test:assertNotEquals(nil, contents)
   local unmount = love.filesystem.unmountFullPath(love.filesystem.getSource() .. '/tests')
   test:assertTrue(unmount, 'reset mount')

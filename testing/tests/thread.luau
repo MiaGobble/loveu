@@ -133,5 +133,5 @@ end
 -- love.thread.newThread
 -- @NOTE this is just basic nil checking, objs have their own test method
 love.test.thread.newThread = function(test)
-  test:assertObject(love.thread.newThread('classes/TestSuite.lua'))
+  test:assertObject(love.thread.newThread('classes/TestSuite.luau'))
 end
