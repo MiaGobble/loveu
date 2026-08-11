@@ -19,6 +19,11 @@
 
 #define LOVE_LUAU 1
 
+#ifndef lua_assert
+#include <assert.h>
+#define lua_assert(x) assert(x)
+#endif
+
 /* Luau's lua_pushcfunction / lua_pushcclosure require a debug name. */
 #undef lua_pushcfunction
 #undef lua_pushcclosure
@@ -31,7 +36,15 @@
 #define LUA_NOREF (-2)
 #define LUA_REFNIL (-1)
 
-/* Make noreturn error helpers usable in `return luaL_error(...)`. */
+/* Make noreturn error helpers usable in `return luaL_error(...)` / `return lua_error(L)`.
+ * Luau declares these as void; Lua 5.1 returned int. */
+static inline int love_compat_lua_error(lua_State *L)
+{
+	lua_error(L);
+	return 0;
+}
+#define lua_error(L) love_compat_lua_error(L)
+
 #undef luaL_error
 #undef luaL_typeerror
 #undef luaL_argerror

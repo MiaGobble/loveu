@@ -175,7 +175,6 @@ if(MEGA)
 
 	# Luau is vendored in-tree or via FetchContent; ignore megasource LuaJIT / Lua 5.1.
 	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 else()
 	if(MSVC OR ANDROID)
 		message(FATAL_ERROR "
@@ -224,31 +223,23 @@ Please see https://github.com/love2d/megasource
 	target_link_libraries(lovedep::Zlib INTERFACE ${ZLIB_LIBRARY})
 
 	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 endif()
 
 # Luau load/package/ref helpers used by the engine and third-party Lua C libs.
+# Keep these headers in a dedicated include dir — never add src/common to the
+# public include path (it shadows system <math.h>/<int.h> via love's math.h/int.h).
 add_library(love_luau_compat STATIC
-	src/common/luau_compat.cpp
-	src/common/luau_compat.h
-	src/common/lauxlib.h
+	src/libraries/luau-compat/luau_compat.cpp
+	src/libraries/luau-compat/include/luau_compat.h
+	src/libraries/luau-compat/include/lauxlib.h
 )
 target_include_directories(love_luau_compat PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}/src/common
+	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
 )
 target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
 target_link_libraries(lovedep_Lua INTERFACE love_luau_compat)
 target_compile_definitions(lovedep_Lua INTERFACE LOVE_LUAU=1)
-# C++ TUs need LUA_API=extern "C" to match LUAU_EXTERN_C libs; .c TUs must not see that.
-if(MSVC)
-	target_compile_options(lovedep_Lua INTERFACE
-		$<$<COMPILE_LANGUAGE:CXX>:/FI${CMAKE_CURRENT_SOURCE_DIR}/src/common/luau_cxx_linkage.h>
-	)
-else()
-	target_compile_options(lovedep_Lua INTERFACE
-		$<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/src/common/luau_cxx_linkage.h>
-	)
-endif()
+# C++ TUs must wrap Luau headers in extern "C" { ... } (see runtime.h / lauxlib.h).
 
 ###
 ### No Megasource-specific stuff beyond this point!

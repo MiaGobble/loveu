@@ -25,7 +25,8 @@ IDS = {
 LUAU_HEADERS_LINES = [
     '"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",',
     '"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",',
-    '"$(PROJECT_DIR)/../../src/common",',
+    # Dedicated dir only — do not add src/common (shadows system <math.h>/<int.h>).
+    '"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",',
     '"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",',
 ]
 

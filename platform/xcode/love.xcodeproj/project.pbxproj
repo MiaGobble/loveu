@@ -472,7 +472,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
@@ -507,7 +507,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
@@ -968,7 +968,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);

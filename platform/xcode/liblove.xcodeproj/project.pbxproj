@@ -1483,9 +1483,9 @@
 		FA0B79091A958E3B000E1D17 /* Object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Object.h; sourceTree = "<group>"; };
 		FA0B790C1A958E3B000E1D17 /* Reference.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Reference.cpp; sourceTree = "<group>"; };
 		FA0B790D1A958E3B000E1D17 /* Reference.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reference.h; sourceTree = "<group>"; };
-		B0A11C01C01C01C01C01C001 /* luau_compat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = luau_compat.cpp; sourceTree = "<group>"; };
-		B0A11C01C01C01C01C01C004 /* luau_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = luau_compat.h; sourceTree = "<group>"; };
-		B0A11C01C01C01C01C01C006 /* lauxlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lauxlib.h; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C001 /* luau_compat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = luau_compat.cpp; path = ../../src/libraries/luau-compat/luau_compat.cpp; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C004 /* luau_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = luau_compat.h; path = ../../src/libraries/luau-compat/include/luau_compat.h; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C006 /* lauxlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lauxlib.h; path = ../../src/libraries/luau-compat/include/lauxlib.h; sourceTree = "<group>"; };
 		FA0B790E1A958E3B000E1D17 /* runtime.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = runtime.cpp; sourceTree = "<group>"; };
 		FA0B790F1A958E3B000E1D17 /* runtime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = runtime.h; sourceTree = "<group>"; };
 		FA0B79101A958E3B000E1D17 /* StringMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringMap.h; sourceTree = "<group>"; };
@@ -5752,7 +5752,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5760,10 +5760,6 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5801,7 +5797,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5809,10 +5805,6 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5851,7 +5843,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5859,10 +5851,6 @@
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
@@ -5968,7 +5956,7 @@
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
@@ -5977,10 +5965,6 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",
@@ -6018,7 +6002,7 @@
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
@@ -6027,10 +6011,6 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",
@@ -6069,7 +6049,7 @@
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
@@ -6078,10 +6058,6 @@
 				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
-				OTHER_CPLUSPLUSFLAGS = (
-					$(inherited),
-					"-include$(PROJECT_DIR)/../../src/common/luau_cxx_linkage.h",
-				);
 				OTHER_LDFLAGS = (
 					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"-lLuau.Compiler",

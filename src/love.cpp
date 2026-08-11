@@ -35,7 +35,7 @@ extern "C" {
 	#include <lualib.h>
 	#include <luacode.h>
 }
-#include "common/luau_compat.h"
+#include "luau_compat.h"
 
 #ifdef LOVE_WINDOWS
 #define WIN32_LEAN_AND_MEAN
