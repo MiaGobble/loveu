@@ -30,6 +30,7 @@
 *.bat
 /platform/xcode/Build
 /platform/xcode/DerivedData
+/platform/xcode/build
 /platform/xcode/ios/include
 /platform/xcode/ios/libraries
 /platform/xcode/ios/luajit-git
@@ -38,6 +39,8 @@
 *xcuserdata*
 *.DS_Store
 *.dylib
+/build-compat-test/
+/build-luau-test/
 *.dmg*
 demos
 *.orig

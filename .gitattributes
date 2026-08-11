@@ -3,3 +3,4 @@
 *.c diff=cpp
 *.cpp diff=cpp
 *.h diff=cpp
+platform/xcode/scripts/*.sh text eol=lf

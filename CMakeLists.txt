@@ -86,21 +86,22 @@ message(STATUS "Scripting: Luau")
 message(STATUS "Target platform: ${LOVE_TARGET_PLATFORM}")
 
 # Embed Luau (replaces LuaJIT / PUC Lua 5.1).
+# Use CURRENT_SOURCE_DIR so this works when love is an add_subdirectory of megasource.
 set(LUAU_BUILD_CLI OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
 set(LUAU_EXTERN_C ON CACHE BOOL "" FORCE)
 
-set(LOVE_LUAU_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/libraries/luau")
+set(LOVE_LUAU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau")
 if(EXISTS "${LOVE_LUAU_SOURCE_DIR}/CMakeLists.txt")
 	message(STATUS "Luau: using vendored sources at ${LOVE_LUAU_SOURCE_DIR}")
-	add_subdirectory("${LOVE_LUAU_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/luau")
+	add_subdirectory("${LOVE_LUAU_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/luau")
 else()
 	message(STATUS "Luau: fetching via FetchContent")
 	include(FetchContent)
 	FetchContent_Declare(luau
 		GIT_REPOSITORY https://github.com/luau-lang/luau.git
-		GIT_TAG master
+		GIT_TAG 0.733
 		GIT_SHALLOW TRUE
 	)
 	FetchContent_MakeAvailable(luau)
@@ -115,7 +116,9 @@ add_library(lovedep::Theora INTERFACE IMPORTED)
 add_library(lovedep::Vorbis INTERFACE IMPORTED)
 add_library(lovedep::Ogg INTERFACE IMPORTED)
 add_library(lovedep::Zlib INTERFACE IMPORTED)
-add_library(lovedep::Lua INTERFACE IMPORTED)
+# Non-IMPORTED so we can attach Luau + compat as real build-tree deps.
+add_library(lovedep_Lua INTERFACE)
+add_library(lovedep::Lua ALIAS lovedep_Lua)
 
 if(MEGA)
 	# LOVE_MSVC_DLLS contains runtime DLLs that should be bundled with the love
@@ -152,8 +155,8 @@ if(MEGA)
 	target_link_libraries(lovedep::Zlib INTERFACE ${MEGA_ZLIB})
 
 	# Luau is vendored in-tree or via FetchContent; ignore megasource LuaJIT / Lua 5.1.
-	target_link_libraries(lovedep::Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep::Lua INTERFACE ${CMAKE_SOURCE_DIR}/src/common)
+	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
+	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 else()
 	if(MSVC OR ANDROID)
 		message(FATAL_ERROR "
@@ -201,8 +204,8 @@ Please see https://github.com/love2d/megasource
 	target_include_directories(lovedep::Zlib INTERFACE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(lovedep::Zlib INTERFACE ${ZLIB_LIBRARY})
 
-	target_link_libraries(lovedep::Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep::Lua INTERFACE ${CMAKE_SOURCE_DIR}/src/common)
+	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
+	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 endif()
 
 # Luau load/package/ref helpers used by the engine and third-party Lua C libs.
@@ -212,10 +215,10 @@ add_library(love_luau_compat STATIC
 	src/common/lauxlib.h
 )
 target_include_directories(love_luau_compat PUBLIC
-	${CMAKE_SOURCE_DIR}/src/common
+	${CMAKE_CURRENT_SOURCE_DIR}/src/common
 )
 target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
-target_link_libraries(lovedep::Lua INTERFACE love_luau_compat)
+target_link_libraries(lovedep_Lua INTERFACE love_luau_compat)
 
 ###
 ### No Megasource-specific stuff beyond this point!
@@ -1969,7 +1972,7 @@ love_group_projects(NAME "liblove" NESTED TARGETS ${LIBLOVE_DEPENDENCIES})
 love_group_projects(NAME "liblove/libraries" NESTED TARGETS ${LIBLOVE_LIBRARIES})
 love_group_projects(NAME "liblove" TARGETS liblove ${LOVE_EXTRA_DEPENDECIES})
 
-love_group_projects(NAME "lovedep" TARGETS lovedep::SDL lovedep::Freetype lovedep::Harfbuzz lovedep::OpenAL lovedep::Modplug lovedep::Theora lovedep::Vorbis lovedep::Ogg lovedep::Zlib lovedep::Lua)
+love_group_projects(NAME "lovedep" TARGETS lovedep::SDL lovedep::Freetype lovedep::Harfbuzz lovedep::OpenAL lovedep::Modplug lovedep::Theora lovedep::Vorbis lovedep::Ogg lovedep::Zlib lovedep_Lua)
 love_group_projects(NAME "lovedep" TARGETS lua51 alcommon al-excommon harfbuzz-subset zlib)
 
 

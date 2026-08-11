@@ -1,12 +1,17 @@
 /**
  * Compatibility shims so LÖVE's Lua 5.1-style C code works against Luau.
- * Include after lua.h / lualib.h / luacode.h.
+ * Include AFTER lua.h / lualib.h / luacode.h.
  **/
 #ifndef LOVE_LUAU_COMPAT_H
 #define LOVE_LUAU_COMPAT_H
 
 #include <stddef.h>
 #include <string.h>
+
+/* Ensure Lua headers were included first. */
+#ifndef LUA_REGISTRYINDEX
+#error "luau_compat.h requires Luau lua.h (include lua.h/lualib.h/luacode.h before this header)"
+#endif
 
 #ifndef LUA_VERSION_NUM
 #define LUA_VERSION_NUM 501

@@ -2,8 +2,6 @@
  * Luau compatibility helpers: loadbuffer, luaL_ref, and package/require.
  **/
 
-#include "luau_compat.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +9,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <luacode.h>
+#include "luau_compat.h"
 
 #ifndef LUA_ERRFILE
 #define LUA_ERRFILE LUA_ERRRUN

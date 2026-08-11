@@ -1,3 +1,0 @@
-[submodule "src/libraries/luau"]
-	path = src/libraries/luau
-	url = https://github.com/luau-lang/luau.git

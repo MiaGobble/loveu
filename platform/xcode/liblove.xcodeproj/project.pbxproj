@@ -127,6 +127,10 @@
 		FA0B79381A958E3B000E1D17 /* Reference.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0B790C1A958E3B000E1D17 /* Reference.cpp */; };
 		FA0B79391A958E3B000E1D17 /* Reference.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0B790C1A958E3B000E1D17 /* Reference.cpp */; };
 		FA0B793A1A958E3B000E1D17 /* Reference.h in Headers */ = {isa = PBXBuildFile; fileRef = FA0B790D1A958E3B000E1D17 /* Reference.h */; };
+		B0A11C01C01C01C01C01C002 /* luau_compat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A11C01C01C01C01C01C001 /* luau_compat.cpp */; };
+		B0A11C01C01C01C01C01C003 /* luau_compat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A11C01C01C01C01C01C001 /* luau_compat.cpp */; };
+		B0A11C01C01C01C01C01C005 /* luau_compat.h in Headers */ = {isa = PBXBuildFile; fileRef = B0A11C01C01C01C01C01C004 /* luau_compat.h */; };
+		B0A11C01C01C01C01C01C007 /* lauxlib.h in Headers */ = {isa = PBXBuildFile; fileRef = B0A11C01C01C01C01C01C006 /* lauxlib.h */; };
 		FA0B793B1A958E3B000E1D17 /* runtime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0B790E1A958E3B000E1D17 /* runtime.cpp */; };
 		FA0B793C1A958E3B000E1D17 /* runtime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0B790E1A958E3B000E1D17 /* runtime.cpp */; };
 		FA0B793D1A958E3B000E1D17 /* runtime.h in Headers */ = {isa = PBXBuildFile; fileRef = FA0B790F1A958E3B000E1D17 /* runtime.h */; };
@@ -1479,6 +1483,9 @@
 		FA0B79091A958E3B000E1D17 /* Object.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Object.h; sourceTree = "<group>"; };
 		FA0B790C1A958E3B000E1D17 /* Reference.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Reference.cpp; sourceTree = "<group>"; };
 		FA0B790D1A958E3B000E1D17 /* Reference.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reference.h; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C001 /* luau_compat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = luau_compat.cpp; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C004 /* luau_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = luau_compat.h; sourceTree = "<group>"; };
+		B0A11C01C01C01C01C01C006 /* lauxlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lauxlib.h; sourceTree = "<group>"; };
 		FA0B790E1A958E3B000E1D17 /* runtime.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = runtime.cpp; sourceTree = "<group>"; };
 		FA0B790F1A958E3B000E1D17 /* runtime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = runtime.h; sourceTree = "<group>"; };
 		FA0B79101A958E3B000E1D17 /* StringMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StringMap.h; sourceTree = "<group>"; };
@@ -2341,7 +2348,6 @@
 				D923E7D3296B85B9002FF1B3 /* harfbuzz.xcframework in Frameworks */,
 				FA84DE7A277D4C88002674C6 /* modplug.xcframework in Frameworks */,
 				FA84DE7C277E045E002674C6 /* ogg.xcframework in Frameworks */,
-				FACFB753276D7F860089F78D /* Lua.xcframework in Frameworks */,
 				D9596F622CBAC93800BE58C1 /* SDL3.xcframework in Frameworks */,
 				FA7E9207277E120900C24CB2 /* theora.xcframework in Frameworks */,
 				FA84DE7E277E0A43002674C6 /* vorbis.xcframework in Frameworks */,
@@ -2495,6 +2501,9 @@
 				FA0B790C1A958E3B000E1D17 /* Reference.cpp */,
 				FA0B790D1A958E3B000E1D17 /* Reference.h */,
 				FA0B790E1A958E3B000E1D17 /* runtime.cpp */,
+				B0A11C01C01C01C01C01C001 /* luau_compat.cpp */,
+				B0A11C01C01C01C01C01C004 /* luau_compat.h */,
+				B0A11C01C01C01C01C01C006 /* lauxlib.h */,
 				FA0B790F1A958E3B000E1D17 /* runtime.h */,
 				FA9D8DD51DEF8411002CD881 /* Stream.cpp */,
 				FA9D8DD61DEF8411002CD881 /* Stream.h */,
@@ -4608,6 +4617,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FA0B78EE1A958B90000E1D17 /* Build configuration list for PBXNativeTarget "liblove-ios" */;
 			buildPhases = (
+				B0A11C01C01C01C01C01C011 /* Build Luau */,
 				FA0B78D91A958B90000E1D17 /* Sources */,
 				FA0B78DA1A958B90000E1D17 /* Frameworks */,
 				FA0B78DB1A958B90000E1D17 /* CopyFiles */,
@@ -4625,6 +4635,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FA577ABF16C7507900860150 /* Build configuration list for PBXNativeTarget "liblove-macosx" */;
 			buildPhases = (
+				B0A11C01C01C01C01C01C010 /* Build Luau */,
 				FA577AAA16C7507900860150 /* Sources */,
 				FA577AAB16C7507900860150 /* Frameworks */,
 				FA577AAC16C7507900860150 /* Headers */,
@@ -4680,6 +4691,39 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+
+		B0A11C01C01C01C01C01C010 /* Build Luau */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Build Luau";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "export PLATFORM_NAME=\"${PLATFORM_NAME}\"\nexport CONFIGURATION=\"${CONFIGURATION}\"\nexport SDKROOT=\"${SDKROOT}\"\nexport ARCHS=\"${ARCHS}\"\nexport CURRENT_ARCH=\"${CURRENT_ARCH}\"\nexport MACOSX_DEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET}\"\nexport IPHONEOS_DEPLOYMENT_TARGET=\"${IPHONEOS_DEPLOYMENT_TARGET}\"\nbash \"${PROJECT_DIR}/scripts/build-luau.sh\"\n";
+		};
+
+		B0A11C01C01C01C01C01C011 /* Build Luau */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Build Luau";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "export PLATFORM_NAME=\"${PLATFORM_NAME}\"\nexport CONFIGURATION=\"${CONFIGURATION}\"\nexport SDKROOT=\"${SDKROOT}\"\nexport ARCHS=\"${ARCHS}\"\nexport CURRENT_ARCH=\"${CURRENT_ARCH}\"\nexport MACOSX_DEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET}\"\nexport IPHONEOS_DEPLOYMENT_TARGET=\"${IPHONEOS_DEPLOYMENT_TARGET}\"\nbash \"${PROJECT_DIR}/scripts/build-luau.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		FA0B78D91A958B90000E1D17 /* Sources */ = {
@@ -4836,6 +4880,7 @@
 				D9F0C2D52C680A5500BB2D25 /* CurlClient.cpp in Sources */,
 				FAF140AD1E20934C00F898D2 /* Versions.cpp in Sources */,
 				FA0B793C1A958E3B000E1D17 /* runtime.cpp in Sources */,
+				B0A11C01C01C01C01C01C003 /* luau_compat.cpp in Sources */,
 				FA6BDF8A280B62A000240F2A /* GraphicsReadback.mm in Sources */,
 				FA0B7DBC1A95902C000E1D17 /* Joystick.cpp in Sources */,
 				FA0B7DAF1A95902C000E1D17 /* wrap_CompressedImageData.cpp in Sources */,
@@ -5413,6 +5458,7 @@
 				FAF1407A1E20934C00F898D2 /* limits.cpp in Sources */,
 				FAC7CD7E1FE35E95006A60C7 /* physfs_archiver_mvl.c in Sources */,
 				FA0B793B1A958E3B000E1D17 /* runtime.cpp in Sources */,
+		B0A11C01C01C01C01C01C002 /* luau_compat.cpp in Sources */,
 				FA0B7E5D1A95902C000E1D17 /* wrap_MouseJoint.cpp in Sources */,
 				FA0B7AD41A958EA3000E1D17 /* unix.c in Sources */,
 				FADF543B1E3DAFF700012CC0 /* wrap_Graphics.cpp in Sources */,
@@ -5694,10 +5740,28 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
-				HEADER_SEARCH_PATHS = "$(inherited)";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
 				MTL_ENABLE_DEBUG_INFO = YES;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				PRODUCT_NAME = love;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -5719,10 +5783,28 @@
 					LOVE_SUPPORT_COREAUDIO,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
-				HEADER_SEARCH_PATHS = "$(inherited)";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				PRODUCT_NAME = love;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -5745,10 +5827,28 @@
 					LOVE_SUPPORT_COREAUDIO,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
-				HEADER_SEARCH_PATHS = "$(inherited)";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				PRODUCT_NAME = love;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -5838,7 +5938,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
 				);
@@ -5847,6 +5950,13 @@
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
 				OTHER_LDFLAGS = (
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
 					"-undefined",
 					dynamic_lookup,
 				);
@@ -5874,7 +5984,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
 				);
@@ -5883,6 +5996,13 @@
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
 				OTHER_LDFLAGS = (
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
 					"-undefined",
 					dynamic_lookup,
 				);
@@ -5911,7 +6031,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
 				);
@@ -5920,6 +6043,13 @@
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../../../";
 				MARKETING_VERSION = 11.5;
 				OTHER_LDFLAGS = (
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
 					"-undefined",
 					dynamic_lookup,
 				);

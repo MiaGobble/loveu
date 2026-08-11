@@ -105,7 +105,6 @@
 				A9F169AD109E825000FC83D1 /* libmodplug.framework in Copy Frameworks */,
 				A9255F58104324E100BA1496 /* ogg.framework in Copy Frameworks */,
 				A9255E031043195A00BA1496 /* vorbis.framework in Copy Frameworks */,
-				A9255DD31043183600BA1496 /* Lua.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -160,7 +159,6 @@
 				FA08F69616C766E000F007B5 /* love.framework in Frameworks */,
 				D9596F642CBAC98B00BE58C1 /* SDL3.xcframework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
-				A93E6E5510420B57007D418B /* Lua.framework in Frameworks */,
 				FA27B3CB1B498696008A9DCE /* theora.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -472,7 +470,10 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
 				INFOPLIST_FILE = "macosx/love-macosx.plist";
@@ -504,7 +505,10 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
 				INFOPLIST_FILE = "macosx/love-macosx.plist";
@@ -719,6 +723,20 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.love2d.love;
 				PRODUCT_NAME = love;
 				PROVISIONING_PROFILE = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -769,6 +787,20 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.love2d.love;
 				PRODUCT_NAME = love;
 				PROVISIONING_PROFILE = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -820,6 +852,20 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.love2d.love;
 				PRODUCT_NAME = love;
 				PROVISIONING_PROFILE = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-L$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
+					"-lLuau.Compiler",
+					"-lLuau.VM",
+					"-lLuau.Ast",
+					"-lLuau.Bytecode",
+					"-lLuau.Common",
+					"-lc++",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -920,7 +966,10 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/macosx/Frameworks/Lua.framework/Headers",
+										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
 				INFOPLIST_FILE = "macosx/love-macosx.plist";

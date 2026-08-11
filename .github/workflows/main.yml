@@ -48,6 +48,12 @@ jobs:
       with:
         path: love2d-${{ github.sha }}
         submodules: recursive
+    - name: Adapt AppImage Makefile for Luau
+      run: |
+        # love-appimage-source still assumes LuaJIT; Luau is vendored in-tree.
+        sed -i 's# installdir/lib/libluajit-5.1.so##g' Makefile
+        sed -i 's# -DLuaJIT_ROOT=installdir##g' Makefile
+        sed -i 's# \$(LUAJIT_PATH)/Makefile##g' Makefile
     - name: Get Dependencies for AppImage
       shell: python
       env:
@@ -183,12 +189,8 @@ jobs:
     - name: Define Variables
       id: vars
       run: |
-        rem JIT Modules
-        if "${{ matrix.platform }}" == "x64" (
-          (echo jitmodules=1)>> "%GITHUB_OUTPUT%"
-        ) else (
-          (echo jitmodules=0)>> "%GITHUB_OUTPUT%"
-        )
+        rem JIT modules are not shipped under Luau.
+        (echo jitmodules=0)>> "%GITHUB_OUTPUT%"
         
         rem Architecture-Specific Switch
         goto ${{ matrix.platform }}
@@ -296,8 +298,8 @@ jobs:
         python source_index.py ^
         --source %CD%\megasource\libs\love https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }} ^
         --source %CD%\megasource https://raw.githubusercontent.com/love2d/megasource/${{ steps.megasource.outputs.commit }} ^
-        --source %CD%\build\libs\LuaJIT https://raw.githubusercontent.com/love2d/megasource/${{ steps.megasource.outputs.commit }}/libs/LuaJIT ^
         pdb\Release\*.pdb
+      continue-on-error: true
     - name: Artifact
       uses: actions/upload-artifact@v4
       with:
