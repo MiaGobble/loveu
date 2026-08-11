@@ -44,7 +44,7 @@ static int absindex(lua_State *L, int idx)
 	return lua_gettop(L) + idx + 1;
 }
 
-int luaL_ref(lua_State *L, int t)
+LOVE_LUAU_EXPORT int luaL_ref(lua_State *L, int t)
 {
 	int ref;
 	t = absindex(L, t);
@@ -389,7 +389,7 @@ static int open_bit_alias(lua_State *L)
 	return 0;
 }
 
-int luaopen_love_package(lua_State *L)
+LOVE_LUAU_EXPORT int luaopen_love_package(lua_State *L)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
 	if (!lua_istable(L, -1))
@@ -445,7 +445,7 @@ int luaopen_love_package(lua_State *L)
 	return 0;
 }
 
-void love_open_package(lua_State *L)
+LOVE_LUAU_EXPORT void love_open_package(lua_State *L)
 {
 	luaopen_love_package(L);
 }
