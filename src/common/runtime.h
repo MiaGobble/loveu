@@ -28,13 +28,14 @@
 #include "Variant.h"
 #include "deprecation.h"
 
-// Lua
+// Luau (Lua 5.1-compatible C API + compile helpers)
 extern "C" {
 	#define LUA_COMPAT_ALL
 	#include <lua.h>
 	#include <lualib.h>
-	#include <lauxlib.h>
+	#include <luacode.h>
 }
+#include "luau_compat.h"
 
 // C++
 #include <exception>

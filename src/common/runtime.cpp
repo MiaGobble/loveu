@@ -43,14 +43,20 @@ namespace love
  * Called when an object is collected. The object is released
  * once in this function, possibly deleting it.
  **/
-static int w__gc(lua_State *L)
+static void proxy_dtor(void *ud)
 {
-	Proxy *p = (Proxy *) lua_touserdata(L, 1);
+	Proxy *p = (Proxy *)ud;
 	if (p->object != nullptr)
 	{
 		p->object->release();
 		p->object = nullptr;
 	}
+}
+
+static int w__gc(lua_State *L)
+{
+	/* Kept for API symmetry; Luau uses userdata dtors instead of __gc. */
+	proxy_dtor(lua_touserdata(L, 1));
 	return 0;
 }
 
@@ -438,15 +444,14 @@ int luax_register_module(lua_State *L, const WrappedModule &m)
 	// Put a reference to the C++ module in Lua.
 	luax_insistregistry(L, REGISTRY_MODULES);
 
-	Proxy *p = (Proxy *)lua_newuserdata(L, sizeof(Proxy));
+	Proxy *p = (Proxy *)lua_newuserdatadtor(L, sizeof(Proxy), proxy_dtor);
 	p->object = m.module;
 	p->type = m.type;
 
 	luaL_newmetatable(L, m.module->getName());
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -2, "__index");
-	lua_pushcfunction(L, w__gc);
-	lua_setfield(L, -2, "__gc");
+	/* __gc is not used under Luau; destructor is attached via lua_newuserdatadtor. */
 
 	lua_setmetatable(L, -2);
 	lua_setfield(L, -2, m.name); // _modules[name] = proxy
@@ -521,9 +526,7 @@ int luax_register_type(lua_State *L, love::Type *type, ...)
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -2, "__index");
 
-	// setup gc
-	lua_pushcfunction(L, w__gc);
-	lua_setfield(L, -2, "__gc");
+	/* Luau: object lifetime uses lua_newuserdatadtor in luax_rawnewtype. */
 
 	// Add equality
 	lua_pushcfunction(L, w__eq);
@@ -622,7 +625,7 @@ int luax_register_searcher(lua_State *L, lua_CFunction f, int pos)
 
 void luax_rawnewtype(lua_State *L, love::Type &type, love::Object *object)
 {
-	Proxy *u = (Proxy *)lua_newuserdata(L, sizeof(Proxy));
+	Proxy *u = (Proxy *)lua_newuserdatadtor(L, sizeof(Proxy), proxy_dtor);
 
 	object->retain();
 
@@ -631,19 +634,6 @@ void luax_rawnewtype(lua_State *L, love::Type &type, love::Object *object)
 
 	const char *name = type.getName();
 	luaL_newmetatable(L, name);
-
-	lua_getfield(L, -1, "__gc");
-	bool has_gc = !lua_isnoneornil(L, -1);
-	lua_pop(L, 1);
-
-	// Make sure mt.__gc exists, so Lua states which don't have the object's
-	// module loaded will still clean the object up when it's collected.
-	if (!has_gc)
-	{
-		lua_pushcfunction(L, w__gc);
-		lua_setfield(L, -2, "__gc");
-	}
-
 	lua_setmetatable(L, -2);
 }
 
@@ -1188,7 +1178,10 @@ Type *luax_type(lua_State *L, int idx)
 
 int luax_resume(lua_State *L, int nargs, int* nres)
 {
-#if LUA_VERSION_NUM >= 504
+#ifdef LOVE_LUAU
+	LOVE_UNUSED(nres);
+	return lua_resume(L, nullptr, nargs);
+#elif LUA_VERSION_NUM >= 504
 	return lua_resume(L, nullptr, nargs, nres);
 #elif LUA_VERSION_NUM >= 502
 	LOVE_UNUSED(nres);

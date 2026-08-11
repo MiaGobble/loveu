@@ -99,10 +99,6 @@ static const char boot_lua[] =
 #include "boot.lua"
 ;
 
-static const char jit_setup_lua[] =
-#include "jitsetup.lua"
-;
-
 // All modules define a c-accessible luaopen
 // so let's make use of those, instead
 // of addressing implementations directly.
@@ -169,7 +165,6 @@ extern "C"
 	extern int luaopen_love_window(lua_State*);
 #endif
 	extern int luaopen_love_nogame(lua_State*);
-	extern int luaopen_love_jitsetup(lua_State*);
 	extern int luaopen_love_arg(lua_State*);
 	extern int luaopen_love_callbacks(lua_State*);
 	extern int luaopen_love_boot(lua_State*);
@@ -241,7 +236,6 @@ static const luaL_Reg modules[] = {
 	{ "love.window", luaopen_love_window },
 #endif
 	{ "love.nogame", luaopen_love_nogame },
-	{ "love.jitsetup", luaopen_love_jitsetup },
 	{ "love.arg", luaopen_love_arg },
 	{ "love.callbacks", luaopen_love_callbacks },
 	{ "love.boot", luaopen_love_boot },
@@ -781,14 +775,6 @@ int w__openConsole(lua_State *L)
 int luaopen_love_nogame(lua_State *L)
 {
 	if (luaL_loadbuffer(L, (const char *)love::nogame_lua, sizeof(love::nogame_lua), "=[love \"nogame.lua\"]") == 0)
-		lua_call(L, 0, 1);
-
-	return 1;
-}
-
-int luaopen_love_jitsetup(lua_State *L)
-{
-	if (luaL_loadbuffer(L, jit_setup_lua, sizeof(jit_setup_lua), "=[love \"jitsetup.lua\"]") == 0)
 		lua_call(L, 0, 1);
 
 	return 1;

@@ -82,24 +82,29 @@ else()
 endif()
 
 
-if(APPLE)
-	set(LOVE_DEFAULT_JIT FALSE)
-else()
-	set(LOVE_DEFAULT_JIT TRUE)
-endif()
-
-option(LOVE_JIT "Use LuaJIT" ${LOVE_DEFAULT_JIT})
-
-if(LOVE_JIT)
-	if(APPLE)
-		message(WARNING "JIT not supported yet on Mac.")
-	endif()
-	message(STATUS "LuaJIT: Enabled")
-else()
-	message(STATUS "LuaJIT: Disabled")
-endif()
-
+message(STATUS "Scripting: Luau")
 message(STATUS "Target platform: ${LOVE_TARGET_PLATFORM}")
+
+# Embed Luau (replaces LuaJIT / PUC Lua 5.1).
+set(LUAU_BUILD_CLI OFF CACHE BOOL "" FORCE)
+set(LUAU_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
+set(LUAU_EXTERN_C ON CACHE BOOL "" FORCE)
+
+set(LOVE_LUAU_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/libraries/luau")
+if(EXISTS "${LOVE_LUAU_SOURCE_DIR}/CMakeLists.txt")
+	message(STATUS "Luau: using vendored sources at ${LOVE_LUAU_SOURCE_DIR}")
+	add_subdirectory("${LOVE_LUAU_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/luau")
+else()
+	message(STATUS "Luau: fetching via FetchContent")
+	include(FetchContent)
+	FetchContent_Declare(luau
+		GIT_REPOSITORY https://github.com/luau-lang/luau.git
+		GIT_TAG master
+		GIT_SHALLOW TRUE
+	)
+	FetchContent_MakeAvailable(luau)
+endif()
 
 add_library(lovedep::SDL INTERFACE IMPORTED)
 add_library(lovedep::Freetype INTERFACE IMPORTED)
@@ -146,24 +151,9 @@ if(MEGA)
 	target_link_libraries(lovedep::Ogg INTERFACE ${MEGA_LIBOGG})
 	target_link_libraries(lovedep::Zlib INTERFACE ${MEGA_ZLIB})
 
-	if(LOVE_JIT)
-		target_include_directories(lovedep::Lua INTERFACE ${MEGA_LUAJIT_INCLUDE})
-		target_link_libraries(lovedep::Lua INTERFACE ${MEGA_LUAJIT_LIB})
-		set(LOVE_EXTRA_DLLS ${LOVE_EXTRA_DLLS} ${MEGA_LUAJIT_DLL})
-		set(LOVE_EXTRA_DEPENDECIES luajit)
-		set(LOVE_MOVE_DLLS
-			${LOVE_MOVE_DLLS}
-			${MEGA_LUAJIT_DLL}
-		)
-	else()
-		# MEGA_LUA51 is a CMake target, so includes are handled
-		# automatically.
-		target_link_libraries(lovedep::Lua INTERFACE ${MEGA_LUA51})
-		set(LOVE_MOVE_DLLS
-			${LOVE_MOVE_DLLS}
-			${MEGA_LUA51}
-		)
-	endif()
+	# Luau is vendored in-tree or via FetchContent; ignore megasource LuaJIT / Lua 5.1.
+	target_link_libraries(lovedep::Lua INTERFACE Luau.VM Luau.Compiler)
+	target_include_directories(lovedep::Lua INTERFACE ${CMAKE_SOURCE_DIR}/src/common)
 else()
 	if(MSVC OR ANDROID)
 		message(FATAL_ERROR "
@@ -211,16 +201,21 @@ Please see https://github.com/love2d/megasource
 	target_include_directories(lovedep::Zlib INTERFACE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(lovedep::Zlib INTERFACE ${ZLIB_LIBRARY})
 
-	if(LOVE_JIT)
-		find_package(LuaJIT REQUIRED)
-		target_include_directories(lovedep::Lua INTERFACE ${LUAJIT_INCLUDE_DIR})
-		target_link_libraries(lovedep::Lua INTERFACE ${LUAJIT_LIBRARY})
-	else()
-		find_package(Lua51 REQUIRED)
-		target_include_directories(lovedep::Lua INTERFACE ${LUA_INCLUDE_DIR})
-		target_link_libraries(lovedep::Lua INTERFACE ${LUA_LIBRARY})
-	endif()
+	target_link_libraries(lovedep::Lua INTERFACE Luau.VM Luau.Compiler)
+	target_include_directories(lovedep::Lua INTERFACE ${CMAKE_SOURCE_DIR}/src/common)
 endif()
+
+# Luau load/package/ref helpers used by the engine and third-party Lua C libs.
+add_library(love_luau_compat STATIC
+	src/common/luau_compat.cpp
+	src/common/luau_compat.h
+	src/common/lauxlib.h
+)
+target_include_directories(love_luau_compat PUBLIC
+	${CMAKE_SOURCE_DIR}/src/common
+)
+target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
+target_link_libraries(lovedep::Lua INTERFACE love_luau_compat)
 
 ###
 ### No Megasource-specific stuff beyond this point!
@@ -1913,7 +1908,6 @@ add_library(liblove SHARED
 	src/modules/love/arg.lua
 	src/modules/love/boot.lua
 	src/modules/love/callbacks.lua
-	src/modules/love/jitsetup.lua
 	src/scripts/nogame.lua
 )
 set_target_properties(liblove PROPERTIES

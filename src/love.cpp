@@ -29,12 +29,13 @@
 
 #include <SDL3/SDL_main.h>
 
-// Lua
+// Luau
 extern "C" {
 	#include <lua.h>
 	#include <lualib.h>
-	#include <lauxlib.h>
+	#include <luacode.h>
 }
+#include "common/luau_compat.h"
 
 #ifdef LOVE_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -153,15 +154,15 @@ enum DoneAction
 static void print_usage()
 {
     // when editing this message, change it at boot.lua too
-    printf("LOVE is an *awesome* framework you can use to make 2D games in Lua\n"
+    printf("LOVE is an *awesome* framework you can use to make 2D games in Luau\n"
         "https://love2d.org\n"
         "\n"
         "usage:\n"
         "    love --version                  prints LOVE version and quits\n"
         "    love --help                     prints this message and quits\n"
-        "    love path/to/gamedir            runs the game from the given directory which contains a main.lua file\n"
+        "    love path/to/gamedir            runs the game from the given directory which contains a main.luau file\n"
         "    love path/to/packagedgame.love  runs the packaged game from the provided .love file\n"
-        "    love path/to/file.lua           runs the game from the given .lua file\n"
+        "    love path/to/file.luau          runs the game from the given .luau file\n"
         );
 }
 
@@ -189,14 +190,7 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 	// Create the virtual machine.
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-
-	// LuaJIT-specific setup needs to be done as early as possible - before
-	// get_app_arguments because that loads external library code. This is also
-	// loaded inside love's Lua threads. Note that it doesn't use the love table.
-	love_preload(L, luaopen_love_jitsetup, "love.jitsetup");
-	lua_getglobal(L, "require");
-	lua_pushstring(L, "love.jitsetup");
-	lua_call(L, 1, 0);
+	love_open_package(L); // Luau has no built-in package/require.
 
 #ifdef LOVE_LEGENDARY_APP_ARGV_HACK
 	int hack_argc = 0;

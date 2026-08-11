@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 #include "lua.h"
+#include "lauxlib.h"
 
 typedef struct luaL_Buffer_53 {
 	luaL_Buffer b; /* make incorrect code crash! */

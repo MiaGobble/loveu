@@ -47,6 +47,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: love2d-${{ github.sha }}
+        submodules: recursive
     - name: Get Dependencies for AppImage
       shell: python
       env:
@@ -59,7 +60,8 @@ jobs:
         raise Exception("make getdeps failed")
     - name: Build AppImage
       run: make LOVE_BRANCH=${{ github.sha }}
-    - name: Print LuaJIT branch
+    - name: Print LuaJIT branch (optional)
+      continue-on-error: true
       run: git -C LuaJIT-v2.1 branch -v
     # start xvfb for test running
     - name: Start xvfb and openbox
@@ -75,7 +77,7 @@ jobs:
     - name: Run Test Suite (opengl)
       run: |
         chmod a+x love-${{ github.sha }}.AppImage
-        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.lua --all --isRunner --renderers opengl
+        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (opengl)
       id: report1
       uses: ellraiser/love-test-report@main
@@ -98,7 +100,7 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
         export LOVE_GRAPHICS_USE_OPENGLES=1
-        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.lua --all --isRunner --renderers opengl
+        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (opengles)
       uses: ellraiser/love-test-report@main
       id: report2
@@ -121,7 +123,7 @@ jobs:
         LOVE_GRAPHICS_DEBUG: ${{ runner.arch == 'ARM64' && '0' || '1' }} 
         LOVE_GRAPHICS_VULKAN_ALLOW_SOFTWARE: 1
       run: |
-        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.lua --all --isRunner --renderers vulkan
+        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.luau --all --isRunner --renderers vulkan
     - name: Love Test Report (vulkan)
       uses: ellraiser/love-test-report@main
       id: report3
@@ -252,6 +254,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: megasource/libs/love
+        submodules: recursive
     - name: Download ANGLE
       uses: robinraju/release-downloader@v1.9
       if: steps.vars.outputs.angle == '1'
@@ -333,7 +336,7 @@ jobs:
       run: |
         echo 'check dir'
         ls
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.lua --all --isRunner --renderers opengl
+        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (opengl)
       id: report1
       if: steps.vars.outputs.arch != 'ARM64'
@@ -360,7 +363,7 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
         LOVE_GRAPHICS_USE_OPENGLES: 1
       run: |
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.lua --all --isRunner --renderers opengl
+        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (opengles)
       id: report2
       if: steps.vars.outputs.arch != 'ARM64'
@@ -406,7 +409,7 @@ jobs:
 #        LOVE_GRAPHICS_DEBUG: 1
 #        LOVE_GRAPHICS_VULKAN_ALLOW_SOFTWARE: 1
 #      run: |
-#        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.lua --all --isRunner --renderers vulkan
+#        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers vulkan
 #    - name: Love Test Report (vulkan)
 #      if: steps.vars.outputs.arch != 'ARM64'
 #      uses: ellraiser/love-test-report@main
@@ -465,7 +468,7 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
         ls
-        love-macos/love.app/Contents/MacOS/love ./testing/main.lua --all --isRunner --renderers opengl
+        love-macos/love.app/Contents/MacOS/love ./testing/main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (OpenGL)
       id: report1
       uses: ellraiser/love-test-report@main
@@ -493,7 +496,7 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
         ls
-        love-macos/love.app/Contents/MacOS/love ./testing/main.lua --all --isRunner --renderers metal
+        love-macos/love.app/Contents/MacOS/love ./testing/main.luau --all --isRunner --renderers metal
     - name: Love Test Report (Metal)
       id: report2
       uses: ellraiser/love-test-report@main

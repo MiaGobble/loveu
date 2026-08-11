@@ -38,9 +38,10 @@ extern "C" {
 #define LUA_COMPAT_ALL
 #include "lua.h"
 #include "lualib.h"
-#include "lauxlib.h"
+#include "luacode.h"
 #include <enet/enet.h>
 }
+#include "luau_compat.h"
 
 #define check_host(l, idx)\
 	*(ENetHost**)luaL_checkudata(l, idx, "enet_host")
@@ -48,6 +49,15 @@ extern "C" {
 #define check_peer(l, idx)\
 	*(ENetPeer**)luaL_checkudata(l, idx, "enet_peer")
 
+static void enet_host_dtor(void *ud)
+{
+	ENetHost **host = (ENetHost **)ud;
+	if (host && *host)
+	{
+		enet_host_destroy(*host);
+		*host = NULL;
+	}
+}
 /**
  * Parse address string, eg:
  *	*:5959
@@ -335,7 +345,7 @@ static int host_create(lua_State *l) {
 		return 2;
 	}
 
-	*(ENetHost**)lua_newuserdata(l, sizeof(void*)) = host;
+	*(ENetHost**)lua_newuserdatadtor(l, sizeof(void*), enet_host_dtor) = host;
 	luaL_getmetatable(l, "enet_host");
 	lua_setmetatable(l, -2);
 
@@ -578,10 +588,7 @@ static int host_gc(lua_State *l) {
 	// We have to manually grab the userdata so that we can set it to NULL.
 	ENetHost** host = (ENetHost**)luaL_checkudata(l, 1, "enet_host");
 	// We don't want to crash by destroying a non-existant host.
-	if (*host) {
-		enet_host_destroy(*host);
-	}
-	*host = NULL;
+	enet_host_dtor(host);
 	return 0;
 }
 
@@ -875,8 +882,7 @@ int luaopen_enet(lua_State *l) {
 	lua_newtable(l); // index
 	luax_register(l, NULL, enet_host_funcs);
 	lua_setfield(l, -2, "__index");
-	lua_pushcfunction(l, host_gc);
-	lua_setfield(l, -2, "__gc");
+	/* Lifetime handled by lua_newuserdatadtor; keep destroy() callable. */
 
 	luaL_newmetatable(l, "enet_peer");
 	lua_newtable(l);

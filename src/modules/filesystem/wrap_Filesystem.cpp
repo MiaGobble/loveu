@@ -757,6 +757,11 @@ int w_load(lua_State *L)
 			return luax_enumerror(L, "load mode", Filesystem::getConstants(loadMode), mode);
 	}
 
+	if (loadMode == Filesystem::LOADMODE_BINARY)
+	{
+		return luax_ioError(L, "binary chunks are not supported under Luau");
+	}
+
 	Data *data = nullptr;
 	try
 	{
@@ -767,24 +772,7 @@ int w_load(lua_State *L)
 		return luax_ioError(L, "%s", e.what());
 	}
 
-	int status;
-
-#if (LUA_VERSION_NUM > 501) || defined(LUA_JITLIBNAME)
-	// LuaJIT support this Lua 5.2 function.
-	const char *mode;
-	Filesystem::getConstant(loadMode, mode);
-
-	status = luaL_loadbufferx(L, (const char *)data->getData(), data->getSize(), ("@" + filename).c_str(), mode);
-#else
-	if (loadMode == Filesystem::LOADMODE_ANY)
-		status = luaL_loadbuffer(L, (const char *)data->getData(), data->getSize(), ("@" + filename).c_str());
-	else
-	{
-		// Unsupported
-		data->release();
-		return luaL_error(L, "only \"bt\" is supported on this Lua interpreter\n");
-	}
-#endif
+	int status = luaL_loadbufferx(L, (const char *)data->getData(), data->getSize(), ("@" + filename).c_str(), nullptr);
 
 	data->release();
 

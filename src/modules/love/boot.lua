@@ -37,7 +37,7 @@ end
 
 local no_game_code = false
 local invalid_game_path = nil
-local main_file = "main.lua"
+local main_file = "main.luau"
 
 -- This can't be overridden.
 function love.boot()
@@ -45,7 +45,7 @@ function love.boot()
 	-- This is absolutely needed.
 	require("love.filesystem")
 
-	-- Having love.system loaded before conf.lua is run can be useful for accessing love.system.getOS.
+	-- Having love.system loaded before conf.luau is run can be useful for accessing love.system.getOS.
 	require("love.system")
 
 	-- nogame.lua returns _noGameRestartInfo when
@@ -95,7 +95,7 @@ function love.boot()
 
 	love.setDeprecationOutput(not love.filesystem.isFused())
 
-	main_file = "main.lua"
+	main_file = "main.luau"
 	local custom_main_file = false
 
 	local identity = ""
@@ -113,7 +113,7 @@ function love.boot()
 			full_source = love.path.getFull(nouri)
 			local source_leaf = love.path.leaf(full_source)
 
-			if source_leaf:match("%.lua$") then
+			if source_leaf:match("%.luau$") then
 				main_file = source_leaf
 				custom_main_file = true
 				full_source = love.path.getFull(full_source:sub(1, -(#source_leaf + 1)))
@@ -133,7 +133,7 @@ function love.boot()
 		identity = love.path.leaf(exepath)
 	end
 
-	-- Try to use the archive containing main.lua as the identity name. It
+	-- Try to use the archive containing main.luau as the identity name. It
 	-- might not be available, in which case the fallbacks above are used.
 	local realdir = love.filesystem.getRealDirectory(main_file)
 	if realdir then
@@ -145,25 +145,25 @@ function love.boot()
 	identity = identity:gsub("%.", "_") -- replace remaining "."'s with "_"
 	identity = #identity > 0 and identity or "lovegame"
 
-	-- When conf.lua is initially loaded, the main source should be checked
+	-- When conf.luau is initially loaded, the main source should be checked
 	-- before the save directory (the identity should be appended.)
 	pcall(love.filesystem.setIdentity, identity, true)
 
-	if can_has_game and not (love.filesystem.getInfo(main_file) or (not custom_main_file and love.filesystem.getInfo("conf.lua"))) then
+	if can_has_game and not (love.filesystem.getInfo(main_file) or (not custom_main_file and love.filesystem.getInfo("conf.luau"))) then
 		no_game_code = true
 	end
 
 	if not can_has_game then
         -- when editing this message, change it at love.cpp too
-        print([[LOVE is an *awesome* framework you can use to make 2D games in Lua
+        print([[LOVE is an *awesome* framework you can use to make 2D games in Luau
 https://love2d.org
 
 usage:
     love --version                  prints LOVE version and quits
     love --help                     prints this message and quits
-    love path/to/gamedir            runs the game from the given directory which contains a main.lua file
+    love path/to/gamedir            runs the game from the given directory which contains a main.luau file
     love path/to/packagedgame.love  runs the packaged game from the provided .love file
-    love path/to/file.lua           runs the game from the given .lua file
+    love path/to/file.luau          runs the game from the given .luau file
 ]]);
 		local nogame = require("love.nogame")
 		nogame()
@@ -246,11 +246,11 @@ function love.init()
 
 	-- If config file exists, load it and allow it to update config table.
 	local confok, conferr
-	if (not love.conf) and love.filesystem and love.filesystem.getInfo("conf.lua") then
+	if (not love.conf) and love.filesystem and love.filesystem.getInfo("conf.luau") then
 		confok, conferr = pcall(require, "conf")
 	end
 
-	-- Yes, conf.lua might not exist, but there are other ways of making
+	-- Yes, conf.luau might not exist, but there are other ways of making
 	-- love.conf appear, so we should check for it anyway.
 	if love.conf then
 		confok, conferr = pcall(love.conf, c)
@@ -441,7 +441,7 @@ function love.init()
 		love.filesystem._setAndroidSaveExternal(c.externalstorage)
 		love.filesystem.setIdentity(c.identity or love.filesystem.getIdentity(), c.appendidentity)
 		if love.filesystem.getInfo(main_file) then
-			require(main_file:gsub("%.lua$", ""))
+			require(main_file:gsub("%.luau$", ""))
 		end
 	end
 
