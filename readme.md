@@ -1,4 +1,6 @@
 # loveu
+[![CI](https://github.com/MiaGobble/loveu/actions/workflows/main.yml/badge.svg)](https://github.com/MiaGobble/loveu/actions/workflows/main.yml)
+
 loveu is a fork of LÖVE to support different things that I want out of the engine.
 
 ## Divergence
