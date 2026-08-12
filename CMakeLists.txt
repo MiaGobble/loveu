@@ -2035,24 +2035,26 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-target_link_libraries(liblove PRIVATE
-	${LIBLOVE_DEPENDENCIES}
-	${LIBLOVE_LIBRARIES}
-)
-# Embed a single Luau into liblove. On ELF, --whole-archive pulls every lua_*
-# member into liblove.so so the love executable can bind them. Do not use
-# --no-undefined here: love's static module archives rely on the default
-# shared-lib allowance for residual cross-archive references.
+# Love modules are many static archives with cross-references. On ELF, a single
+# pass leaves UND symbols in liblove.so; linking the love executable then fails
+# (--no-allow-shlib-undefined). Rescan the group so liblove.so is self-contained.
+# whole-archive embeds Luau so the exe can bind every lua_* from liblove.
 if(UNIX AND NOT APPLE AND NOT ANDROID)
 	target_link_libraries(liblove PRIVATE
+		"-Wl,--start-group"
+		${LIBLOVE_DEPENDENCIES}
+		${LIBLOVE_LIBRARIES}
 		"-Wl,--whole-archive"
 		Luau.VM
 		Luau.Compiler
 		love_luau_compat
 		"-Wl,--no-whole-archive"
+		"-Wl,--end-group"
 	)
 else()
 	target_link_libraries(liblove PRIVATE
+		${LIBLOVE_DEPENDENCIES}
+		${LIBLOVE_LIBRARIES}
 		Luau.VM
 		Luau.Compiler
 		love_luau_compat
