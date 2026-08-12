@@ -1979,16 +1979,6 @@ set_target_properties(liblove PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN ON
 	LIBRARY_OUTPUT_NAME "${LOVE_LIB_NAME}")
-# On Unix the love executable links lua_* from liblove.so. Even with
-# visibility("default") on LUA_API, some toolchains still hide archive
-# members under -fvisibility=hidden. Export the whole library on Linux/BSD
-# so AppImage linking resolves Luau (Windows keeps dllexport selective).
-if(UNIX AND NOT ANDROID AND NOT APPLE)
-	set_target_properties(liblove PROPERTIES
-		C_VISIBILITY_PRESET default
-		CXX_VISIBILITY_PRESET default
-		VISIBILITY_INLINES_HIDDEN OFF)
-endif()
 set(LIBLOVE_DEPENDENCIES
 	love_common
 	love_audio
@@ -2032,10 +2022,20 @@ set(LIBLOVE_LIBRARIES
 target_link_libraries(liblove PRIVATE
 	${LIBLOVE_DEPENDENCIES}
 	${LIBLOVE_LIBRARIES}
-	Luau.VM
-	Luau.Compiler
-	love_luau_compat
 )
+# Windows/Android/Apple: embed Luau inside liblove and export the C API.
+# Linux: keep a single Luau in the love executable and let liblove.so resolve
+# lua_* from the exe (-E / --allow-shlib-undefined). Embedding Luau in both
+# duplicates luaH_dummynode; hiding it inside liblove often fails AppImage link.
+if(NOT (UNIX AND NOT ANDROID AND NOT APPLE))
+	target_link_libraries(liblove PRIVATE
+		Luau.VM
+		Luau.Compiler
+		love_luau_compat
+	)
+else()
+	target_link_options(liblove PRIVATE "LINKER:--allow-shlib-undefined")
+endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
 	add_dependencies(liblove ${LOVE_EXTRA_DEPENDECIES})
@@ -2084,13 +2084,18 @@ else()
 endif()
 
 target_sources(love PRIVATE src/love.cpp)
-# Headers/defines for Lua + SDL; Luau.VM itself is only linked into liblove.
+# Headers/defines for Lua + SDL. On Windows Luau lives in love.dll; on Linux
+# it is linked into this executable so liblove can resolve lua_* from the exe.
 target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
 if(WIN32)
 	target_compile_definitions(love PRIVATE
 		"LUA_API=extern \"C\" __declspec(dllimport)"
 		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
 	)
+elseif(UNIX AND NOT ANDROID AND NOT APPLE)
+	target_link_libraries(love PRIVATE Luau.VM Luau.Compiler love_luau_compat)
+	# Export Luau C API for liblove.so's unresolved references.
+	target_link_options(love PRIVATE "LINKER:-E")
 endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden

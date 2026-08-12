@@ -76,15 +76,13 @@ jobs:
         make LOVE_BRANCH=${{ github.sha }} 2>&1 | tee appimage-build.log
         status=${PIPESTATUS[0]}
         if [ "$status" -ne 0 ]; then
-          echo "===== last 100 log lines ====="
-          tail -n 100 appimage-build.log || true
-          echo "===== filtered AppImage build errors ====="
-          # Surface into GitHub check annotations (visible via API without log auth).
-          grep -E 'error:|undefined reference|CMake Error|relocation|fatal error|collect2|patchelf|appimagetool|No rule to make|FAILED' appimage-build.log \
-            | tail -n 80 \
-            | while IFS= read -r line; do
-                echo "::error::$line"
-              done || true
+          echo "===== last 60 log lines ====="
+          tail -n 60 appimage-build.log || true
+          # Always publish the tail as check annotations (visible without log auth).
+          tail -n 60 appimage-build.log | while IFS= read -r line; do
+            # Truncate to keep annotation payload reasonable.
+            echo "::error::${line:0:200}"
+          done || true
           exit "$status"
         fi
     - name: Upload AppImage build log
@@ -354,8 +352,22 @@ jobs:
     - name: Install Mesa 
       if: steps.vars.outputs.arch != 'ARM64'
       run: |
-        curl -L --output mesa.7z --url https://github.com/pal1000/mesa-dist-win/releases/download/24.2.4/mesa3d-24.2.4-release-msvc.7z
+        setlocal EnableExtensions
+        set URL=https://github.com/pal1000/mesa-dist-win/releases/download/24.2.4/mesa3d-24.2.4-release-msvc.7z
+        set ATTEMPT=0
+        :retry
+        set /a ATTEMPT+=1
+        curl -L --retry 5 --retry-delay 5 --retry-all-errors --output mesa.7z --url %URL%
+        if errorlevel 1 (
+          if %ATTEMPT% LSS 3 (
+            echo Mesa download failed, retry %ATTEMPT%...
+            ping -n 6 127.0.0.1 >nul
+            goto retry
+          )
+          exit /b 1
+        )
         7z x mesa.7z -o*
+        if errorlevel 1 exit /b 1
         powershell.exe mesa\systemwidedeploy.cmd 1
     # build love to use for the tests
     - name: Build Test Exe
