@@ -1986,15 +1986,6 @@ set_target_properties(liblove PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN ON
 	LIBRARY_OUTPUT_NAME "${LOVE_LIB_NAME}")
-# On Linux the love executable binds lua_* from liblove.so. Keep Luau's
-# visibility("default") LUA_API, and export the shared object broadly so
-# archive members are not hidden under -fvisibility=hidden.
-if(UNIX AND NOT ANDROID AND NOT APPLE)
-	set_target_properties(liblove PROPERTIES
-		C_VISIBILITY_PRESET default
-		CXX_VISIBILITY_PRESET default
-		VISIBILITY_INLINES_HIDDEN OFF)
-endif()
 set(LIBLOVE_DEPENDENCIES
 	love_common
 	love_audio
@@ -2035,26 +2026,23 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-# Keep the same archive order as upstream love. Raw -Wl,--start-group /
-# --whole-archive strings in target_link_libraries get reordered by CMake and
-# produced liblove.so with UND glad/box2d (love exe link then fails). Embed Luau
-# with LINK_LIBRARY:WHOLE_ARCHIVE only (CMake 3.24+; AppImage ships 3.30).
 target_link_libraries(liblove PRIVATE
 	${LIBLOVE_DEPENDENCIES}
 	${LIBLOVE_LIBRARIES}
 )
-if(UNIX AND NOT APPLE AND NOT ANDROID)
-	target_link_libraries(liblove PRIVATE
-		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.VM>"
-		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.Compiler>"
-		"$<LINK_LIBRARY:WHOLE_ARCHIVE,love_luau_compat>"
-	)
-else()
+# Windows/Android/Apple: embed Luau inside liblove and export the C API.
+# Linux AppImage: keep a single Luau in the love executable and let liblove.so
+# resolve lua_* from the exe (-E / --allow-shlib-undefined). Embedding Luau in
+# liblove with whole-archive/visibility hacks left liblove.so with UND
+# glad/box2d and broke linking the love binary.
+if(NOT (UNIX AND NOT ANDROID AND NOT APPLE))
 	target_link_libraries(liblove PRIVATE
 		Luau.VM
 		Luau.Compiler
 		love_luau_compat
 	)
+else()
+	target_link_options(liblove PRIVATE "LINKER:--allow-shlib-undefined")
 endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
@@ -2104,13 +2092,18 @@ else()
 endif()
 
 target_sources(love PRIVATE src/love.cpp)
-# Headers/defines for Lua + SDL. Luau is linked only into liblove (exported).
+# Headers/defines for Lua + SDL. On Windows Luau lives in love.dll; on Linux
+# it is linked into this executable so liblove can resolve lua_* from the exe.
 target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
 if(WIN32)
 	target_compile_definitions(love PRIVATE
 		"LUA_API=extern \"C\" __declspec(dllimport)"
 		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
 	)
+elseif(UNIX AND NOT ANDROID AND NOT APPLE)
+	target_link_libraries(love PRIVATE Luau.VM Luau.Compiler love_luau_compat)
+	# Export Luau C API for liblove.so's unresolved references.
+	target_link_options(love PRIVATE "LINKER:-E")
 endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden
