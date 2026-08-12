@@ -1979,6 +1979,16 @@ set_target_properties(liblove PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN ON
 	LIBRARY_OUTPUT_NAME "${LOVE_LIB_NAME}")
+# On Unix the love executable links lua_* from liblove.so. Even with
+# visibility("default") on LUA_API, some toolchains still hide archive
+# members under -fvisibility=hidden. Export the whole library on Linux/BSD
+# so AppImage linking resolves Luau (Windows keeps dllexport selective).
+if(UNIX AND NOT ANDROID AND NOT APPLE)
+	set_target_properties(liblove PROPERTIES
+		C_VISIBILITY_PRESET default
+		CXX_VISIBILITY_PRESET default
+		VISIBILITY_INLINES_HIDDEN OFF)
+endif()
 set(LIBLOVE_DEPENDENCIES
 	love_common
 	love_audio
