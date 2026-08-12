@@ -425,6 +425,7 @@ jobs:
     # windows opengles tests
     - name: Run Tests (opengles)
       if: steps.vars.outputs.arch != 'ARM64'
+      id: gles
       env:
         LOVE_GRAPHICS_DEBUG: 1
         LOVE_GRAPHICS_USE_OPENGLES: 1
@@ -432,9 +433,19 @@ jobs:
         if exist install\lua51.dll del /f /q install\lua51.dll
         cd install
         lovec.exe ..\megasource\libs\love\testing\main.luau --all --isRunner --renderers opengl
+        set EXITCODE=%ERRORLEVEL%
+        if not "%EXITCODE%"=="0" (
+          echo ::error::Windows OpenGLES lovec exited with code %EXITCODE%
+          if exist ..\megasource\libs\love\testing\output\lovetest_all.md (
+            powershell -NoProfile -Command "Get-Content -LiteralPath '..\megasource\libs\love\testing\output\lovetest_all.md' -Tail 40 | ForEach-Object { if ($_.Length -gt 200) { $_ = $_.Substring(0,200) }; Write-Output ('::error::' + $_)}"
+          ) else (
+            echo ::error::No lovetest_all.md after OpenGLES crash - likely died before/during suite finish
+          )
+          exit /b %EXITCODE%
+        )
     - name: Love Test Report (opengles)
       id: report2
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64' && hashFiles('megasource/libs/love/testing/output/lovetest_all.md') != ''
       uses: ellraiser/love-test-report@main
       with:
         name: Love Testsuite Windows ${{ steps.vars.outputs.arch }} (opengles)
@@ -442,15 +453,20 @@ jobs:
         path: megasource/libs/love/testing/output/lovetest_all.md
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64'
       run: |
-        7z a -tzip test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip megasource/libs/love/testing/output/
+        if exist megasource\libs\love\testing\output (
+          7z a -tzip test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip megasource/libs/love/testing/output/
+        ) else (
+          echo No test output directory to zip
+        )
     - name: Artifact Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64'
       uses: actions/upload-artifact@v4
       with:
-        name: test-output-windows-${{ steps.vars.outputs.arch }}-opengles-${{ steps.report2.outputs.conclusion }}
+        name: test-output-windows-${{ steps.vars.outputs.arch }}-opengles-${{ steps.report2.outputs.conclusion || steps.gles.outcome }}
         path: test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip
+        if-no-files-found: ignore
     - name: Check Tests Passing
       if: steps.report1.outputs.conclusion == 'failure' || steps.report2.outputs.conclusion == 'failure'
       run: |
