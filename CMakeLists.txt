@@ -123,6 +123,15 @@ foreach(_love_luau_tgt Luau.VM Luau.Compiler Luau.CodeGen)
 			set_property(TARGET ${_love_luau_tgt} PROPERTY INTERFACE_COMPILE_DEFINITIONS "${_love_luau_newdefs}")
 		endif()
 		target_compile_definitions(${_love_luau_tgt} PUBLIC LUA_USE_LONGJMP=1)
+		# Export Lua C API from love.dll (static Luau linked into the shared lib).
+		# Must keep extern "C" — bare __declspec(dllexport) C++-mangles lua_close etc.
+		if(WIN32)
+			target_compile_definitions(${_love_luau_tgt} PRIVATE
+				"LUA_API=extern \"C\" __declspec(dllexport)"
+				"LUACODE_API=extern \"C\" __declspec(dllexport)"
+				"LUACODEGEN_API=extern \"C\" __declspec(dllexport)"
+			)
+		endif()
 	endif()
 endforeach()
 
@@ -174,7 +183,13 @@ if(MEGA)
 	target_link_libraries(lovedep::Zlib INTERFACE ${MEGA_ZLIB})
 
 	# Luau is vendored in-tree or via FetchContent; ignore megasource LuaJIT / Lua 5.1.
-	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
+	# Headers/defines only here — do NOT INTERFACE-link Luau.VM into dependents.
+	# Linking the static VM into both love.dll and lovec.exe duplicates dummynode and
+	# corrupts the Lua state (ACCESS_VIOLATION on table free / quit).
+	target_include_directories(lovedep_Lua INTERFACE
+		$<TARGET_PROPERTY:Luau.VM,INTERFACE_INCLUDE_DIRECTORIES>
+		$<TARGET_PROPERTY:Luau.Compiler,INTERFACE_INCLUDE_DIRECTORIES>
+	)
 else()
 	if(MSVC OR ANDROID)
 		message(FATAL_ERROR "
@@ -222,12 +237,19 @@ Please see https://github.com/love2d/megasource
 	target_include_directories(lovedep::Zlib INTERFACE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(lovedep::Zlib INTERFACE ${ZLIB_LIBRARY})
 
-	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
+	target_include_directories(lovedep_Lua INTERFACE
+		$<TARGET_PROPERTY:Luau.VM,INTERFACE_INCLUDE_DIRECTORIES>
+		$<TARGET_PROPERTY:Luau.Compiler,INTERFACE_INCLUDE_DIRECTORIES>
+	)
 endif()
 
 # Luau load/package/ref helpers used by the engine and third-party Lua C libs.
 # Keep these headers in a dedicated include dir — never add src/common to the
 # public include path (it shadows system <math.h>/<int.h> via love's math.h/int.h).
+#
+# IMPORTANT: do not INTERFACE-link Luau.VM / love_luau_compat through lovedep_Lua.
+# lovec/love.exe must import Lua symbols from love.dll only; a second static Luau
+# in the exe duplicates luaH_dummynode and crashes on lua_close.
 add_library(love_luau_compat STATIC
 	src/libraries/luau-compat/luau_compat.cpp
 	src/libraries/luau-compat/include/luau_compat.h
@@ -236,8 +258,13 @@ add_library(love_luau_compat STATIC
 target_include_directories(love_luau_compat PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
 )
-target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
-target_link_libraries(lovedep_Lua INTERFACE love_luau_compat)
+target_link_libraries(love_luau_compat PRIVATE Luau.VM Luau.Compiler)
+if(WIN32)
+	target_compile_definitions(love_luau_compat PRIVATE "LOVE_LUAU_EXPORT=__declspec(dllexport)")
+endif()
+target_include_directories(lovedep_Lua INTERFACE
+	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
+)
 target_compile_definitions(lovedep_Lua INTERFACE LOVE_LUAU=1)
 # C++ TUs must wrap Luau headers in extern "C" { ... } (see runtime.h / lauxlib.h).
 
@@ -1979,7 +2006,13 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-target_link_libraries(liblove ${LIBLOVE_DEPENDENCIES} ${LIBLOVE_LIBRARIES})
+target_link_libraries(liblove PRIVATE
+	${LIBLOVE_DEPENDENCIES}
+	${LIBLOVE_LIBRARIES}
+	Luau.VM
+	Luau.Compiler
+	love_luau_compat
+)
 
 if(LOVE_EXTRA_DEPENDECIES)
 	add_dependencies(liblove ${LOVE_EXTRA_DEPENDECIES})
@@ -2005,7 +2038,7 @@ if(MSVC)
 endif()
 
 if(MSVC OR MINGW)
-	target_link_libraries(liblove
+	target_link_libraries(liblove PRIVATE
 		ws2_32${WIN32_LIB_EXT}
 		winmm${WIN32_LIB_EXT}
 		dwmapi${WIN32_LIB_EXT}
@@ -2022,13 +2055,20 @@ endif()
 #
 if(ANDROID)
 	add_library(love SHARED) # On Android, the LOVE main entrypoint needs to be compiled as shared library
-	target_link_libraries(liblove android)
+	target_link_libraries(liblove PRIVATE android)
 else()
 	add_executable(love WIN32)
 endif()
 
 target_sources(love PRIVATE src/love.cpp)
-target_link_libraries(love liblove)
+# Headers/defines for Lua + SDL; Luau.VM itself is only linked into liblove.
+target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
+if(WIN32)
+	target_compile_definitions(love PRIVATE
+		"LUA_API=extern \"C\" __declspec(dllimport)"
+		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
+	)
+endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden
 	CXX_VISIBILITY_PRESET hidden
@@ -2037,7 +2077,13 @@ set_target_properties(love PROPERTIES
 
 if(MSVC OR MINGW)
 	add_executable(lovec src/love.cpp)
-	target_link_libraries(lovec liblove)
+	target_link_libraries(lovec PRIVATE liblove lovedep_Lua lovedep::SDL)
+	if(WIN32)
+		target_compile_definitions(lovec PRIVATE
+			"LUA_API=extern \"C\" __declspec(dllimport)"
+			"LOVE_LUAU_EXPORT=__declspec(dllimport)"
+		)
+	endif()
 	set_target_properties(lovec PROPERTIES
 		OUTPUT_NAME ${LOVE_CONSOLE_EXE_NAME})
 endif()

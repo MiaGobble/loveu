@@ -252,24 +252,32 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 	lua_call(L, 1, 1);
 
 	// Turn the returned boot function into a coroutine and call it until done.
-	lua_newthread(L);
+	// Resume a dedicated thread: Luau ACCESS_VIOLATEs when resuming the main
+	// state after nontrivial C module initialization (unlike LuaJIT).
+	lua_State *coro = lua_newthread(L);
 	lua_pushvalue(L, -2);
+	lua_xmove(L, coro, 1);
 	int stackpos = lua_gettop(L);
-	int nres;
-	while (love::luax_resume(L, 0, &nres) == LUA_YIELD)
-#if LUA_VERSION_NUM >= 504
-		lua_pop(L, nres);
-#else
-		lua_pop(L, lua_gettop(L) - stackpos);
-#endif
+	int nres = 0;
+	int status = LUA_OK;
+	while ((status = love::luax_resume(coro, 0, &nres)) == LUA_YIELD)
+	{
+		// boot.lua yields with no values. Do not lua_settop(coro, 0): that
+		// destroys the suspended continuation under Luau.
+	}
+
+	if (status != LUA_OK && !lua_isnoneornil(coro, -1))
+		lua_xmove(coro, L, 1);
+	else if (lua_gettop(coro) > 0)
+		lua_xmove(coro, L, lua_gettop(coro));
 
 	retval = 0;
 	DoneAction done = DONE_QUIT;
 
 	// if love.boot() returns "restart", we'll start up again after closing this
 	// Lua state.
-	int retidx = stackpos;
-	if (!lua_isnoneornil(L, retidx))
+	int retidx = stackpos + 1;
+	if (lua_gettop(L) >= retidx && !lua_isnoneornil(L, retidx))
 	{
 		if (lua_type(L, retidx) == LUA_TSTRING && strcmp(lua_tostring(L, retidx), "restart") == 0)
 			done = DONE_RESTART;
@@ -282,7 +290,12 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 			restartvalue = love::luax_checkvariant(L, retidx + 1, false);
 	}
 
-	lua_close(L);
+	// Luau's luaC_freeall visits GC objects in arbitrary order. With an active
+	// OpenGL context that can free the window/graphics module before remaining
+	// GPU objects and ACCESS_VIOLATE in their dtors. On a normal process quit
+	// the OS reclaims everything; only restart needs a clean lua_close.
+	if (done == DONE_RESTART)
+		lua_close(L);
 
 #if defined(LOVE_LEGENDARY_APP_ARGV_HACK) && !defined(LOVE_IOS)
 	if (hack_argv)

@@ -605,6 +605,8 @@ int luax_register_searcher(lua_State *L, lua_CFunction f, int pos)
 	if (lua_isnil(L, -1))
 		return luaL_error(L, "Can't register searcher: package table does not exist.");
 
+	int packageidx = lua_gettop(L);
+
 	lua_getfield(L, -1, "loaders");
 
 	// Lua 5.2 renamed package.loaders to package.searchers.
@@ -614,12 +616,50 @@ int luax_register_searcher(lua_State *L, lua_CFunction f, int pos)
 		lua_getfield(L, -1, "searchers");
 	}
 
-	if (lua_isnil(L, -1))
+	if (!lua_istable(L, -1))
 		return luaL_error(L, "Can't register searcher: package.loaders table does not exist.");
 
+	int loadersidx = lua_gettop(L);
+	int len = (int) luax_objlen(L, loadersidx);
+
+	if (pos < 0)
+		pos = len + 1 + pos;
+	if (pos < 1)
+		pos = 1;
+	if (pos > len + 1)
+		pos = len + 1;
+
 	lua_pushcfunction(L, f);
-	luax_table_insert(L, -2, -1, pos);
-	lua_pop(L, 3);
+	int funcidx = lua_gettop(L);
+
+	// Rebuild the loaders table instead of in-place shifting. In-place
+	// luax_table_insert via absolute stack indices ACCESS_VIOLATEs under Luau+MSVC
+	// when called from a C module opener (ci stack window / rawseti interaction).
+	lua_createtable(L, len + 1, 0);
+	int newidx = lua_gettop(L);
+	int dest = 1;
+	for (int src = 1; src <= len; src++)
+	{
+		if (dest == pos)
+		{
+			lua_pushvalue(L, funcidx);
+			lua_rawseti(L, newidx, dest++);
+		}
+		lua_rawgeti(L, loadersidx, src);
+		lua_rawseti(L, newidx, dest++);
+	}
+	if (dest == pos)
+	{
+		lua_pushvalue(L, funcidx);
+		lua_rawseti(L, newidx, dest);
+	}
+
+	lua_pushvalue(L, newidx);
+	lua_setfield(L, packageidx, "loaders");
+	lua_pushvalue(L, newidx);
+	lua_setfield(L, packageidx, "searchers");
+
+	lua_settop(L, packageidx - 1);
 	return 0;
 }
 

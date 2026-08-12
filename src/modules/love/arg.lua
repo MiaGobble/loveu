@@ -111,33 +111,39 @@ love.arg.options = {
 
 love.arg.optionIndices = {}
 
-function love.arg.parseOption(m, i)
+function love.arg.parseOption(m, i, args)
 	m.set = true
 
 	if m.a > 0 then
 		m.arg = {}
-		for j=i,i+m.a-1 do
+		local src = args or arg
+		for j = i, i + m.a - 1 do
 			love.arg.optionIndices[j] = true
-			table.insert(m.arg, arg[j])
+			table.insert(m.arg, src[j])
 		end
 	end
 
 	return m.a
 end
 
-function love.arg.parseOptions(arg)
-
+function love.arg.parseOptions(args)
 	local game
-	local argc = #arg
+	-- Luau: avoid # on tables that also hold negative keys (-2/-1 from standalone arg).
+	local argc = 0
+	for k in pairs(args) do
+		if type(k) == "number" and k > argc then
+			argc = k
+		end
+	end
 
 	local i = 1
 	while i <= argc do
-		-- Look for options.
-		local m = arg[i]:match("^%-%-(.*)")
+		local a = args[i]
+		local m = (type(a) == "string") and a:match("^%-%-(.*)") or nil
 
 		if m and m ~= "" and love.arg.options[m] and not love.arg.options[m].set then
 			love.arg.optionIndices[i] = true
-			i = i + love.arg.parseOption(love.arg.options[m], i+1)
+			i = i + love.arg.parseOption(love.arg.options[m], i + 1, args)
 		elseif m == "" then -- handle '--' as an option
 			love.arg.optionIndices[i] = true
 			if not game then -- handle '--' followed by game name
@@ -151,7 +157,7 @@ function love.arg.parseOptions(arg)
 	end
 
 	if not love.arg.options.game.set then
-		love.arg.parseOption(love.arg.options.game, game or 0)
+		love.arg.parseOption(love.arg.options.game, game or 0, args)
 	end
 end
 
@@ -162,8 +168,15 @@ function love.arg.parseGameArguments(a)
 
 	local _, lowindex = love.arg.getLow(a)
 
+	local maxindex = lowindex
+	for k in pairs(a) do
+		if type(k) == "number" and k > maxindex then
+			maxindex = k
+		end
+	end
+
 	local o = lowindex
-	for i=lowindex, #a do
+	for i=lowindex, maxindex do
 		if not love.arg.optionIndices[i] then
 			out[o] = a[i]
 			o = o + 1

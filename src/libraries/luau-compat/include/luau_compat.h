@@ -87,10 +87,14 @@ static inline int love_compat_lua_error(lua_State *L)
 extern "C" {
 #endif
 
+#ifndef LOVE_LUAU_EXPORT
 #if defined(__GNUC__) || defined(__clang__)
 #define LOVE_LUAU_EXPORT __attribute__((visibility("default")))
+#elif defined(_WIN32)
+#define LOVE_LUAU_EXPORT __declspec(dllexport)
 #else
 #define LOVE_LUAU_EXPORT
+#endif
 #endif
 
 LOVE_LUAU_EXPORT int luaL_ref(lua_State *L, int t);
