@@ -123,13 +123,27 @@ foreach(_love_luau_tgt Luau.VM Luau.Compiler Luau.CodeGen)
 			set_property(TARGET ${_love_luau_tgt} PROPERTY INTERFACE_COMPILE_DEFINITIONS "${_love_luau_newdefs}")
 		endif()
 		target_compile_definitions(${_love_luau_tgt} PUBLIC LUA_USE_LONGJMP=1)
-		# Export Lua C API from love.dll (static Luau linked into the shared lib).
-		# Must keep extern "C" — bare __declspec(dllexport) C++-mangles lua_close etc.
+		# Export Lua C API from liblove so the love/lovec executables do not
+		# statically link a second Luau (duplicate luaH_dummynode → crashes).
+		# Must keep extern "C" — bare dllexport C++-mangles lua_close etc.
 		if(WIN32)
 			target_compile_definitions(${_love_luau_tgt} PRIVATE
 				"LUA_API=extern \"C\" __declspec(dllexport)"
 				"LUACODE_API=extern \"C\" __declspec(dllexport)"
 				"LUACODEGEN_API=extern \"C\" __declspec(dllexport)"
+			)
+		elseif(UNIX AND NOT APPLE)
+			# liblove uses -fvisibility=hidden; export Luau for the love binary.
+			target_compile_definitions(${_love_luau_tgt} PRIVATE
+				"LUA_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODE_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODEGEN_API=extern \"C\" __attribute__((visibility(\"default\")))"
+			)
+		elseif(APPLE)
+			target_compile_definitions(${_love_luau_tgt} PRIVATE
+				"LUA_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODE_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODEGEN_API=extern \"C\" __attribute__((visibility(\"default\")))"
 			)
 		endif()
 	endif()

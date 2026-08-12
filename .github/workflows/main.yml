@@ -54,6 +54,11 @@ jobs:
         sed -i 's# installdir/lib/libluajit-5.1.so##g' Makefile
         sed -i 's# -DLuaJIT_ROOT=installdir##g' Makefile
         sed -i 's# \$(LUAJIT_PATH)/Makefile##g' Makefile
+        # Confirm LuaJIT is no longer required to configure/build love.
+        if grep -E 'libluajit|LuaJIT_ROOT' Makefile | grep -v '^#' | grep -v 'LUAJIT_PATH\|LUAJIT_BRANCH\|^#'; then
+          echo "WARNING: Makefile still references LuaJIT in active rules:"
+          grep -nE 'libluajit|LuaJIT_ROOT' Makefile || true
+        fi
     - name: Get Dependencies for AppImage
       shell: python
       env:
@@ -175,7 +180,7 @@ jobs:
       checks: write
       pull-requests: write
     env: 
-      ALSOFT_CONF: megasource/libs/love/testing/resources/alsoft.conf
+      ALSOFT_CONF: ${{ github.workspace }}/megasource/libs/love/testing/resources/alsoft.conf
       VK_ICD_FILENAMES: ${{ github.workspace }}\mesa\x64\lvp_icd.x86_64.json
       VULKAN_SDK: C:/VulkanSDK/1.3.231.1
     strategy:
@@ -204,8 +209,11 @@ jobs:
         
         :x64
         (echo arch=x64)>> "%GITHUB_OUTPUT%"
-        (echo angle=0)>> "%GITHUB_OUTPUT%"
+        rem ANGLE is required for LOVE_GRAPHICS_USE_OPENGLES on CI (Mesa alone
+        rem crashes with STATUS_INVALID_PARAMETER under Luau builds).
+        (echo angle=1)>> "%GITHUB_OUTPUT%"
         echo nofiles=warn>> "%GITHUB_OUTPUT%"
+        echo moredef=-DLOVE_EXTRA_DLLS=%CD%\angle\libEGL.dll;%CD%\angle\libGLESv2.dll>> "%GITHUB_OUTPUT%"
         exit /b 0
         
         :ARM64
