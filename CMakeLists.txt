@@ -1986,6 +1986,15 @@ set_target_properties(liblove PROPERTIES
 	CXX_VISIBILITY_PRESET hidden
 	VISIBILITY_INLINES_HIDDEN ON
 	LIBRARY_OUTPUT_NAME "${LOVE_LIB_NAME}")
+# On Linux the love executable binds lua_* from liblove.so. Keep Luau's
+# visibility("default") LUA_API, and export the shared object broadly so
+# archive members are not hidden under -fvisibility=hidden.
+if(UNIX AND NOT ANDROID AND NOT APPLE)
+	set_target_properties(liblove PROPERTIES
+		C_VISIBILITY_PRESET default
+		CXX_VISIBILITY_PRESET default
+		VISIBILITY_INLINES_HIDDEN OFF)
+endif()
 set(LIBLOVE_DEPENDENCIES
 	love_common
 	love_audio
@@ -2030,8 +2039,10 @@ target_link_libraries(liblove PRIVATE
 	${LIBLOVE_DEPENDENCIES}
 	${LIBLOVE_LIBRARIES}
 )
-# Embed a single Luau into liblove. On ELF, whole-archive + default-visibility
-# LUA_API ensures lua_* is exported for the love executable to bind.
+# Embed a single Luau into liblove. On ELF, --whole-archive pulls every lua_*
+# member into liblove.so so the love executable can bind them. Do not use
+# --no-undefined here: love's static module archives rely on the default
+# shared-lib allowance for residual cross-archive references.
 if(UNIX AND NOT APPLE AND NOT ANDROID)
 	target_link_libraries(liblove PRIVATE
 		"-Wl,--whole-archive"
@@ -2040,7 +2051,6 @@ if(UNIX AND NOT APPLE AND NOT ANDROID)
 		love_luau_compat
 		"-Wl,--no-whole-archive"
 	)
-	target_link_options(liblove PRIVATE "LINKER:--no-undefined")
 else()
 	target_link_libraries(liblove PRIVATE
 		Luau.VM
