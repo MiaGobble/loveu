@@ -2035,26 +2035,22 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-# Love modules are many static archives with cross-references. On ELF, a single
-# pass leaves UND symbols in liblove.so; linking the love executable then fails
-# (--no-allow-shlib-undefined). Rescan the group so liblove.so is self-contained.
-# whole-archive embeds Luau so the exe can bind every lua_* from liblove.
+# Keep the same archive order as upstream love. Raw -Wl,--start-group /
+# --whole-archive strings in target_link_libraries get reordered by CMake and
+# produced liblove.so with UND glad/box2d (love exe link then fails). Embed Luau
+# with LINK_LIBRARY:WHOLE_ARCHIVE only (CMake 3.24+; AppImage ships 3.30).
+target_link_libraries(liblove PRIVATE
+	${LIBLOVE_DEPENDENCIES}
+	${LIBLOVE_LIBRARIES}
+)
 if(UNIX AND NOT APPLE AND NOT ANDROID)
 	target_link_libraries(liblove PRIVATE
-		"-Wl,--start-group"
-		${LIBLOVE_DEPENDENCIES}
-		${LIBLOVE_LIBRARIES}
-		"-Wl,--whole-archive"
-		Luau.VM
-		Luau.Compiler
-		love_luau_compat
-		"-Wl,--no-whole-archive"
-		"-Wl,--end-group"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.VM>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.Compiler>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,love_luau_compat>"
 	)
 else()
 	target_link_libraries(liblove PRIVATE
-		${LIBLOVE_DEPENDENCIES}
-		${LIBLOVE_LIBRARIES}
 		Luau.VM
 		Luau.Compiler
 		love_luau_compat
