@@ -92,6 +92,25 @@ jobs:
         name: appimage-build-log-${{ runner.arch }}
         path: appimage-build.log
         if-no-files-found: ignore
+    - name: Comment AppImage failure on PR
+      if: failure()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [ ! -f appimage-build.log ]; then exit 0; fi
+        PR=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.ref_name }}" --json number -q '.[0].number' || true)
+        if [ -z "$PR" ]; then
+          echo "No open PR for ${{ github.ref_name }}; skipping comment"
+          exit 0
+        fi
+        {
+          echo "### AppImage build failed (\`${{ runner.os }}\` / \`${{ runner.arch }}\`, \`${{ github.sha }}\`)"
+          echo
+          echo '```'
+          tail -n 80 appimage-build.log
+          echo '```'
+        } > /tmp/appimage-fail.md
+        gh pr comment "$PR" --repo "${{ github.repository }}" --body-file /tmp/appimage-fail.md
     - name: Print LuaJIT branch (optional)
       continue-on-error: true
       run: git -C LuaJIT-v2.1 branch -v

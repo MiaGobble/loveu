@@ -2022,20 +2022,10 @@ set(LIBLOVE_LIBRARIES
 target_link_libraries(liblove PRIVATE
 	${LIBLOVE_DEPENDENCIES}
 	${LIBLOVE_LIBRARIES}
+	Luau.VM
+	Luau.Compiler
+	love_luau_compat
 )
-# Windows/Android/Apple: embed Luau inside liblove and export the C API.
-# Linux: keep a single Luau in the love executable and let liblove.so resolve
-# lua_* from the exe (-E / --allow-shlib-undefined). Embedding Luau in both
-# duplicates luaH_dummynode; hiding it inside liblove often fails AppImage link.
-if(NOT (UNIX AND NOT ANDROID AND NOT APPLE))
-	target_link_libraries(liblove PRIVATE
-		Luau.VM
-		Luau.Compiler
-		love_luau_compat
-	)
-else()
-	target_link_options(liblove PRIVATE "LINKER:--allow-shlib-undefined")
-endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
 	add_dependencies(liblove ${LOVE_EXTRA_DEPENDECIES})
@@ -2079,23 +2069,21 @@ endif()
 if(ANDROID)
 	add_library(love SHARED) # On Android, the LOVE main entrypoint needs to be compiled as shared library
 	target_link_libraries(liblove PRIVATE android)
+	target_sources(love PRIVATE src/love.cpp)
 else()
 	add_executable(love WIN32)
+	# love_main (+ Luau) lives in liblove; stub is the process entry.
+	target_sources(liblove PRIVATE src/love.cpp)
+	target_sources(love PRIVATE src/love_stub.cpp)
 endif()
 
-target_sources(love PRIVATE src/love.cpp)
-# Headers/defines for Lua + SDL. On Windows Luau lives in love.dll; on Linux
-# it is linked into this executable so liblove can resolve lua_* from the exe.
+# Headers/defines for Lua + SDL. Luau is linked only into liblove.
 target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
 if(WIN32)
 	target_compile_definitions(love PRIVATE
 		"LUA_API=extern \"C\" __declspec(dllimport)"
 		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
 	)
-elseif(UNIX AND NOT ANDROID AND NOT APPLE)
-	target_link_libraries(love PRIVATE Luau.VM Luau.Compiler love_luau_compat)
-	# Export Luau C API for liblove.so's unresolved references.
-	target_link_options(love PRIVATE "LINKER:-E")
 endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden
@@ -2104,7 +2092,7 @@ set_target_properties(love PROPERTIES
 	OUTPUT_NAME ${LOVE_EXE_NAME})
 
 if(MSVC OR MINGW)
-	add_executable(lovec src/love.cpp)
+	add_executable(lovec src/love_stub.cpp)
 	target_link_libraries(lovec PRIVATE liblove lovedep_Lua lovedep::SDL)
 	if(WIN32)
 		target_compile_definitions(lovec PRIVATE
