@@ -13,7 +13,6 @@ Refer to the below table to see what changed.
 |CLI tooling|Helpers to build, run, initialize, and more|Not implemented|
 |Universal building|Easily build for mobile, PC, and console all at once instead of using Android or iOS repositories separately|Not implemented|
 |Native UI support|Adds support for UI|Not implemented|
-|Whale package manager|A package manager for LÖVE and loveu|Not implemented|
 |Audio improvements|Support for audio buses, global mixer channels, and dynamic sound effects|Not implemented|
 
 ## Luau scripting
