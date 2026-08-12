@@ -54,11 +54,11 @@ jobs:
         sed -i 's# installdir/lib/libluajit-5.1.so##g' Makefile
         sed -i 's# -DLuaJIT_ROOT=installdir##g' Makefile
         sed -i 's# \$(LUAJIT_PATH)/Makefile##g' Makefile
-        # Confirm LuaJIT is no longer required to configure/build love.
-        if grep -E 'libluajit|LuaJIT_ROOT' Makefile | grep -v '^#' | grep -v 'LUAJIT_PATH\|LUAJIT_BRANCH\|^#'; then
-          echo "WARNING: Makefile still references LuaJIT in active rules:"
-          grep -nE 'libluajit|LuaJIT_ROOT' Makefile || true
+        if grep -E 'CMakeCache.txt.*libluajit| -DLuaJIT_ROOT' Makefile; then
+          echo "ERROR: Makefile still requires LuaJIT for love configure" >&2
+          exit 1
         fi
+        grep -n 'CMakeCache.txt\|installdir/bin/love\|^getdeps' Makefile || true
     - name: Get Dependencies for AppImage
       shell: python
       env:
@@ -70,7 +70,15 @@ jobs:
                 raise SystemExit(0)
         raise Exception("make getdeps failed")
     - name: Build AppImage
-      run: make LOVE_BRANCH=${{ github.sha }}
+      run: |
+        set -o pipefail
+        make LOVE_BRANCH=${{ github.sha }} 2>&1 | tee appimage-build.log
+        status=${PIPESTATUS[0]}
+        if [ "$status" -ne 0 ]; then
+          echo "===== filtered AppImage build errors ====="
+          grep -E 'error:|undefined reference|CMake Error|relocation|fatal error|collect2|patchelf|appimagetool|No rule to make' appimage-build.log | tail -n 120 || true
+          exit "$status"
+        fi
     - name: Print LuaJIT branch (optional)
       continue-on-error: true
       run: git -C LuaJIT-v2.1 branch -v
@@ -209,11 +217,10 @@ jobs:
         
         :x64
         (echo arch=x64)>> "%GITHUB_OUTPUT%"
-        rem ANGLE is required for LOVE_GRAPHICS_USE_OPENGLES on CI (Mesa alone
-        rem crashes with STATUS_INVALID_PARAMETER under Luau builds).
-        (echo angle=1)>> "%GITHUB_OUTPUT%"
+        rem Match upstream: Mesa provides GL/GLES on x64. Bundling ANGLE here
+        rem poisons GLES (libEGL/libGLESv2 next to lovec) with STATUS_INVALID_PARAMETER.
+        (echo angle=0)>> "%GITHUB_OUTPUT%"
         echo nofiles=warn>> "%GITHUB_OUTPUT%"
-        echo moredef=-DLOVE_EXTRA_DLLS=%CD%\angle\libEGL.dll;%CD%\angle\libGLESv2.dll>> "%GITHUB_OUTPUT%"
         exit /b 0
         
         :ARM64

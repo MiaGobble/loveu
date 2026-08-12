@@ -93,6 +93,8 @@ set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
 set(LUAU_EXTERN_C ON CACHE BOOL "" FORCE)
 
 set(LOVE_LUAU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau")
+# Luau is linked into shared liblove; static objects must be PIC on Unix/ARM.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(EXISTS "${LOVE_LUAU_SOURCE_DIR}/CMakeLists.txt")
 	message(STATUS "Luau: using vendored sources at ${LOVE_LUAU_SOURCE_DIR}")
 	add_subdirectory("${LOVE_LUAU_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/luau")
@@ -107,21 +109,24 @@ else()
 	FetchContent_MakeAvailable(luau)
 endif()
 
-# LUAU_EXTERN_C sets INTERFACE LUA_API=extern "C", which is invalid in .c TUs
-# (luasocket, lua53). Keep LUA_USE_LONGJMP for C-friendly error handling; C++
-# callers already wrap Luau headers in extern "C" { ... }.
-foreach(_love_luau_tgt Luau.VM Luau.Compiler Luau.CodeGen)
+# LUAU_EXTERN_C sets PUBLIC LUA_API=extern "C" for static builds (no default
+# visibility). liblove uses -fvisibility=hidden, so those symbols stay hidden
+# and the love executable cannot link. Replace with an exported LUA_API.
+foreach(_love_luau_tgt Luau.Common Luau.Ast Luau.Bytecode Luau.Compiler Luau.VM Luau.CodeGen Luau.Config Luau.Inliner)
 	if(TARGET ${_love_luau_tgt})
-		get_target_property(_love_luau_defs ${_love_luau_tgt} INTERFACE_COMPILE_DEFINITIONS)
-		if(_love_luau_defs)
-			set(_love_luau_newdefs "")
-			foreach(_love_luau_def ${_love_luau_defs})
-				if(NOT _love_luau_def MATCHES "^LUA_API=" AND NOT _love_luau_def MATCHES "^LUACODE_API=" AND NOT _love_luau_def MATCHES "^LUACODEGEN_API=")
-					list(APPEND _love_luau_newdefs "${_love_luau_def}")
-				endif()
-			endforeach()
-			set_property(TARGET ${_love_luau_tgt} PROPERTY INTERFACE_COMPILE_DEFINITIONS "${_love_luau_newdefs}")
-		endif()
+		set_target_properties(${_love_luau_tgt} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+		foreach(_love_luau_prop COMPILE_DEFINITIONS INTERFACE_COMPILE_DEFINITIONS)
+			get_target_property(_love_luau_defs ${_love_luau_tgt} ${_love_luau_prop})
+			if(_love_luau_defs)
+				set(_love_luau_newdefs "")
+				foreach(_love_luau_def ${_love_luau_defs})
+					if(NOT _love_luau_def MATCHES "^LUA_API=" AND NOT _love_luau_def MATCHES "^LUACODE_API=" AND NOT _love_luau_def MATCHES "^LUACODEGEN_API=")
+						list(APPEND _love_luau_newdefs "${_love_luau_def}")
+					endif()
+				endforeach()
+				set_property(TARGET ${_love_luau_tgt} PROPERTY ${_love_luau_prop} "${_love_luau_newdefs}")
+			endif()
+		endforeach()
 		target_compile_definitions(${_love_luau_tgt} PUBLIC LUA_USE_LONGJMP=1)
 		# Export Lua C API from liblove so the love/lovec executables do not
 		# statically link a second Luau (duplicate luaH_dummynode → crashes).
@@ -132,14 +137,7 @@ foreach(_love_luau_tgt Luau.VM Luau.Compiler Luau.CodeGen)
 				"LUACODE_API=extern \"C\" __declspec(dllexport)"
 				"LUACODEGEN_API=extern \"C\" __declspec(dllexport)"
 			)
-		elseif(UNIX AND NOT APPLE)
-			# liblove uses -fvisibility=hidden; export Luau for the love binary.
-			target_compile_definitions(${_love_luau_tgt} PRIVATE
-				"LUA_API=extern \"C\" __attribute__((visibility(\"default\")))"
-				"LUACODE_API=extern \"C\" __attribute__((visibility(\"default\")))"
-				"LUACODEGEN_API=extern \"C\" __attribute__((visibility(\"default\")))"
-			)
-		elseif(APPLE)
+		elseif(UNIX OR APPLE)
 			target_compile_definitions(${_love_luau_tgt} PRIVATE
 				"LUA_API=extern \"C\" __attribute__((visibility(\"default\")))"
 				"LUACODE_API=extern \"C\" __attribute__((visibility(\"default\")))"
@@ -272,6 +270,7 @@ add_library(love_luau_compat STATIC
 target_include_directories(love_luau_compat PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
 )
+set_target_properties(love_luau_compat PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(love_luau_compat PRIVATE Luau.VM Luau.Compiler)
 if(WIN32)
 	target_compile_definitions(love_luau_compat PRIVATE "LOVE_LUAU_EXPORT=__declspec(dllexport)")
