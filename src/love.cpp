@@ -27,6 +27,8 @@
 
 #ifdef LOVE_BUILD_EXE
 
+#include <SDL3/SDL_main.h>
+
 // Luau
 extern "C" {
 	#include <lua.h>
@@ -48,6 +50,22 @@ extern "C" {
 #ifdef LOVE_IOS
 #include "common/ios.h"
 #endif
+
+#ifdef LOVE_WINDOWS
+extern "C"
+{
+
+// Prefer the higher performance GPU on Windows systems that use nvidia Optimus.
+// http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+// TODO: Re-evaluate in the future when the average integrated GPU in Optimus
+// systems is less mediocre?
+LOVE_EXPORT DWORD NvOptimusEnablement = 1;
+
+// Same with AMD GPUs.
+// https://community.amd.com/thread/169965
+LOVE_EXPORT DWORD AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif // LOVE_WINDOWS
 
 #ifdef LOVE_LEGENDARY_APP_ARGV_HACK
 
@@ -291,10 +309,15 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 	return done;
 }
 
-// Entry used by the thin love/lovec executables (and Android's love shared lib).
-// Living in liblove means the executable does not need to link Luau directly.
-LOVE_EXPORT int love_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
+	if (strcmp(LOVE_VERSION_STRING, love_version()) != 0)
+	{
+		printf("Version mismatch detected!\nLOVE binary is version %s\n"
+			   "LOVE library is version %s\n", LOVE_VERSION_STRING, love_version());
+		return 1;
+	}
+
 	int retval = 0;
 	DoneAction done = DONE_QUIT;
 	love::Variant restartvalue;

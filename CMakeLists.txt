@@ -147,6 +147,13 @@ foreach(_love_luau_tgt Luau.Common Luau.Ast Luau.Bytecode Luau.Compiler Luau.VM 
 	endif()
 endforeach()
 
+# Don't build unused Luau tooling as part of AppImage/`all`.
+foreach(_love_luau_skip Luau.Analysis Luau.Ast.CLI Luau.Analyze.CLI Luau.Compile.CLI Luau.Bytecode.CLI Luau.Reduce.CLI Luau.Repl.CLI Luau.UnitTest Luau.Conformance Luau.CLI.Test Luau.CLI.lib isocline)
+	if(TARGET ${_love_luau_skip})
+		set_target_properties(${_love_luau_skip} PROPERTIES EXCLUDE_FROM_ALL ON)
+	endif()
+endforeach()
+
 add_library(lovedep::SDL INTERFACE IMPORTED)
 add_library(lovedep::Freetype INTERFACE IMPORTED)
 add_library(lovedep::Harfbuzz INTERFACE IMPORTED)
@@ -2022,10 +2029,25 @@ set(LIBLOVE_LIBRARIES
 target_link_libraries(liblove PRIVATE
 	${LIBLOVE_DEPENDENCIES}
 	${LIBLOVE_LIBRARIES}
-	Luau.VM
-	Luau.Compiler
-	love_luau_compat
 )
+# Embed a single Luau into liblove. On ELF, whole-archive + default-visibility
+# LUA_API ensures lua_* is exported for the love executable to bind.
+if(UNIX AND NOT APPLE AND NOT ANDROID)
+	target_link_libraries(liblove PRIVATE
+		"-Wl,--whole-archive"
+		Luau.VM
+		Luau.Compiler
+		love_luau_compat
+		"-Wl,--no-whole-archive"
+	)
+	target_link_options(liblove PRIVATE "LINKER:--no-undefined")
+else()
+	target_link_libraries(liblove PRIVATE
+		Luau.VM
+		Luau.Compiler
+		love_luau_compat
+	)
+endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
 	add_dependencies(liblove ${LOVE_EXTRA_DEPENDECIES})
@@ -2069,15 +2091,12 @@ endif()
 if(ANDROID)
 	add_library(love SHARED) # On Android, the LOVE main entrypoint needs to be compiled as shared library
 	target_link_libraries(liblove PRIVATE android)
-	target_sources(love PRIVATE src/love.cpp)
 else()
 	add_executable(love WIN32)
-	# love_main (+ Luau) lives in liblove; stub is the process entry.
-	target_sources(liblove PRIVATE src/love.cpp)
-	target_sources(love PRIVATE src/love_stub.cpp)
 endif()
 
-# Headers/defines for Lua + SDL. Luau is linked only into liblove.
+target_sources(love PRIVATE src/love.cpp)
+# Headers/defines for Lua + SDL. Luau is linked only into liblove (exported).
 target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
 if(WIN32)
 	target_compile_definitions(love PRIVATE
@@ -2092,7 +2111,7 @@ set_target_properties(love PROPERTIES
 	OUTPUT_NAME ${LOVE_EXE_NAME})
 
 if(MSVC OR MINGW)
-	add_executable(lovec src/love_stub.cpp)
+	add_executable(lovec src/love.cpp)
 	target_link_libraries(lovec PRIVATE liblove lovedep_Lua lovedep::SDL)
 	if(WIN32)
 		target_compile_definitions(lovec PRIVATE
