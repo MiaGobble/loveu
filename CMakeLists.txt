@@ -2026,23 +2026,56 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-target_link_libraries(liblove PRIVATE
-	${LIBLOVE_DEPENDENCIES}
-	${LIBLOVE_LIBRARIES}
-)
-# Windows/Android/Apple: embed Luau inside liblove and export the C API.
-# Linux AppImage: keep a single Luau in the love executable and let liblove.so
-# resolve lua_* from the exe (-E / --allow-shlib-undefined). Embedding Luau in
-# liblove with whole-archive/visibility hacks left liblove.so with UND
-# glad/box2d and broke linking the love binary.
-if(NOT (UNIX AND NOT ANDROID AND NOT APPLE))
+# On ELF, a single pass over love's many STATIC archives leaves UND symbols in
+# liblove.so (glad/box2d/physfs/...). Linking the love executable then fails
+# under ld's default --no-allow-shlib-undefined. RESCAN (--start-group) needs
+# real archive targets — INTERFACE module umbrellas like love_graphics cannot
+# go in LINK_GROUP. AppImage ships CMake 3.30 (LINK_GROUP needs 3.24+).
+if(UNIX AND NOT APPLE AND NOT ANDROID AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+	set(_liblove_static_archives
+		love_common
+		love_audio_root love_audio_null love_audio_openal
+		love_data
+		love_event_root love_event_sdl
+		love_filesystem_root love_filesystem_physfs
+		love_font_root love_font_freetype
+		love_graphics_root love_graphics_opengl love_graphics_vulkan
+		love_image_root love_image_magpie
+		love_joystick_root love_joystick_sdl
+		love_keyboard_root love_keyboard_sdl
+		love_math
+		love_mouse_root love_mouse_sdl
+		love_physics_root love_physics_box2d
+		love_sensor_root love_sensor_sdl
+		love_sound_root love_sound_lullaby
+		love_system_root love_system_sdl
+		love_thread_root love_thread_sdl
+		love_timer
+		love_touch_root love_touch_sdl
+		love_video_root love_video_theora
+		love_window_root love_window_sdl
+		${LIBLOVE_LIBRARIES}
+	)
+	string(REPLACE ";" "," _liblove_rescan "${_liblove_static_archives}")
 	target_link_libraries(liblove PRIVATE
+		"$<LINK_GROUP:RESCAN,${_liblove_rescan}>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.VM>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.Compiler>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,love_luau_compat>"
+	)
+	# Export Luau (and other) symbols for the love executable to bind.
+	set_target_properties(liblove PROPERTIES
+		C_VISIBILITY_PRESET default
+		CXX_VISIBILITY_PRESET default
+		VISIBILITY_INLINES_HIDDEN OFF)
+else()
+	target_link_libraries(liblove PRIVATE
+		${LIBLOVE_DEPENDENCIES}
+		${LIBLOVE_LIBRARIES}
 		Luau.VM
 		Luau.Compiler
 		love_luau_compat
 	)
-else()
-	target_link_options(liblove PRIVATE "LINKER:--allow-shlib-undefined")
 endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
@@ -2092,18 +2125,13 @@ else()
 endif()
 
 target_sources(love PRIVATE src/love.cpp)
-# Headers/defines for Lua + SDL. On Windows Luau lives in love.dll; on Linux
-# it is linked into this executable so liblove can resolve lua_* from the exe.
+# Headers/defines for Lua + SDL. Luau is linked only into liblove (exported).
 target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
 if(WIN32)
 	target_compile_definitions(love PRIVATE
 		"LUA_API=extern \"C\" __declspec(dllimport)"
 		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
 	)
-elseif(UNIX AND NOT ANDROID AND NOT APPLE)
-	target_link_libraries(love PRIVATE Luau.VM Luau.Compiler love_luau_compat)
-	# Export Luau C API for liblove.so's unresolved references.
-	target_link_options(love PRIVATE "LINKER:-E")
 endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden
