@@ -133,16 +133,16 @@ func AssetName(ver string, plat Platform) string {
 }
 
 // Installed reports whether a usable runtime exists for ver/plat.
+// It returns the cache directory when present.
 func Installed(ver string, plat Platform) (string, bool) {
 	dir, err := CachePath(ver, plat)
 	if err != nil {
 		return "", false
 	}
-	exe, err := FindBinary(dir, plat, false)
-	if err != nil {
+	if _, err := FindBinary(dir, plat, false); err != nil {
 		return "", false
 	}
-	return exe, true
+	return dir, true
 }
 
 // FindBinary locates love/lovec (or app binary) inside a cache dir.
@@ -200,24 +200,23 @@ func FindBinary(dir string, plat Platform, preferConsole bool) (string, error) {
 }
 
 func findNamed(dir string, names []string) (string, error) {
-	var found string
-	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return nil
-		}
-		base := strings.ToLower(d.Name())
-		for _, n := range names {
-			if base == strings.ToLower(n) {
+	for _, want := range names {
+		var found string
+		_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return nil
+			}
+			if strings.EqualFold(d.Name(), want) {
 				found = path
 				return filepath.SkipAll
 			}
+			return nil
+		})
+		if found != "" {
+			return found, nil
 		}
-		return nil
-	})
-	if found == "" {
-		return "", fmt.Errorf("could not find %v under %s", names, dir)
 	}
-	return found, nil
+	return "", fmt.Errorf("could not find %v under %s", names, dir)
 }
 
 // ProbeVersion runs love --version and parses the loveu semver.

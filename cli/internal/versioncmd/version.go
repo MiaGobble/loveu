@@ -3,6 +3,7 @@ package versioncmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/MiaGobble/loveu/cli/internal/project"
@@ -38,20 +39,21 @@ func Check(installMissing bool) error {
 	fmt.Printf("project:  %s %s\n", proj.Name, proj.Version)
 	fmt.Printf("pin:      %s\n", proj.EngineVersion)
 
-	exe, ok := rt.Installed(proj.EngineVersion, plat)
-	if !ok {
+	// On Windows prefer lovec.exe so --version stdout is captured (love.exe is GUI).
+	preferConsole := runtime.GOOS == "windows"
+	exe, err := resolveProbeBinary(proj.EngineVersion, plat, preferConsole)
+	if err != nil {
 		if installMissing {
-			dir, err := rt.Install(rt.InstallOptions{Version: proj.EngineVersion, Platform: plat})
-			if err != nil {
+			dir, instErr := rt.Install(rt.InstallOptions{Version: proj.EngineVersion, Platform: plat})
+			if instErr != nil {
 				fmt.Printf("runtime:  missing (%s)\n", plat)
 				fmt.Printf("status:   error\n")
-				return err
+				return instErr
 			}
-			exe, err = rt.FindBinary(dir, plat, false)
+			exe, err = rt.FindBinary(dir, plat, preferConsole)
 			if err != nil {
 				return err
 			}
-			ok = true
 		} else {
 			fmt.Printf("runtime:  missing (%s)\n", plat)
 			fmt.Printf("status:   missing\n")
@@ -73,6 +75,14 @@ func Check(installMissing bool) error {
 	}
 	fmt.Printf("status:   ok\n")
 	return nil
+}
+
+func resolveProbeBinary(ver string, plat rt.Platform, preferConsole bool) (string, error) {
+	dir, err := rt.CachePath(ver, plat)
+	if err != nil {
+		return "", err
+	}
+	return rt.FindBinary(dir, plat, preferConsole)
 }
 
 func List() error {

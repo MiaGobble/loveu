@@ -48,8 +48,18 @@ func TestInstallFromLocalZip(t *testing.T) {
 	if !ok {
 		t.Fatal("expected installed")
 	}
-	if filepath.Base(exe) != "love.exe" {
-		t.Fatalf("got %s", exe)
+	if filepath.Base(exe) != "love.exe" && filepath.Base(exe) != "windows-x86_64" {
+		// Installed returns the cache directory.
+		if filepath.Base(exe) != "windows-x86_64" {
+			t.Fatalf("got %s", exe)
+		}
+	}
+	bin, err := runtime.FindBinary(exe, runtime.WindowsAMD64, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(bin) != "love.exe" {
+		t.Fatalf("got %s", bin)
 	}
 }
 
