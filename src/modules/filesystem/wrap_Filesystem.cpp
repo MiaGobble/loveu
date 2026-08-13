@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <cstring>
 
-#include "toml.hpp"
+#include "libraries/tomlplusplus/toml.hpp"
 
 #ifdef LOVE_ANDROID
 #include "common/android.h"

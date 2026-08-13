@@ -535,9 +535,6 @@ add_library(love_filesystem_root STATIC
 	src/modules/filesystem/wrap_NativeFile.cpp
 	src/modules/filesystem/wrap_NativeFile.h
 )
-target_include_directories(love_filesystem_root PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/tomlplusplus
-)
 target_link_libraries(love_filesystem_root PUBLIC
 	lovedep::Lua
 	lovedep::SDL
