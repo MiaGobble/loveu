@@ -472,7 +472,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
@@ -507,7 +507,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);
@@ -712,6 +712,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					ios/include,
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/ios/love-ios.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -776,6 +780,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					ios/include,
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/ios/love-ios.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -841,6 +849,10 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					ios/include,
+					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
+					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/ios/love-ios.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -968,7 +980,7 @@
 					"$(inherited)",
 										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 				);

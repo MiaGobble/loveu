@@ -93,6 +93,8 @@ set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
 set(LUAU_EXTERN_C ON CACHE BOOL "" FORCE)
 
 set(LOVE_LUAU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau")
+# Luau is linked into shared liblove; static objects must be PIC on Unix/ARM.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(EXISTS "${LOVE_LUAU_SOURCE_DIR}/CMakeLists.txt")
 	message(STATUS "Luau: using vendored sources at ${LOVE_LUAU_SOURCE_DIR}")
 	add_subdirectory("${LOVE_LUAU_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/luau")
@@ -106,6 +108,51 @@ else()
 	)
 	FetchContent_MakeAvailable(luau)
 endif()
+
+# LUAU_EXTERN_C sets PUBLIC LUA_API=extern "C" for static builds (no default
+# visibility). liblove uses -fvisibility=hidden, so those symbols stay hidden
+# and the love executable cannot link. Replace with an exported LUA_API.
+foreach(_love_luau_tgt Luau.Common Luau.Ast Luau.Bytecode Luau.Compiler Luau.VM Luau.CodeGen Luau.Config Luau.Inliner)
+	if(TARGET ${_love_luau_tgt})
+		set_target_properties(${_love_luau_tgt} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+		foreach(_love_luau_prop COMPILE_DEFINITIONS INTERFACE_COMPILE_DEFINITIONS)
+			get_target_property(_love_luau_defs ${_love_luau_tgt} ${_love_luau_prop})
+			if(_love_luau_defs)
+				set(_love_luau_newdefs "")
+				foreach(_love_luau_def ${_love_luau_defs})
+					if(NOT _love_luau_def MATCHES "^LUA_API=" AND NOT _love_luau_def MATCHES "^LUACODE_API=" AND NOT _love_luau_def MATCHES "^LUACODEGEN_API=")
+						list(APPEND _love_luau_newdefs "${_love_luau_def}")
+					endif()
+				endforeach()
+				set_property(TARGET ${_love_luau_tgt} PROPERTY ${_love_luau_prop} "${_love_luau_newdefs}")
+			endif()
+		endforeach()
+		target_compile_definitions(${_love_luau_tgt} PUBLIC LUA_USE_LONGJMP=1)
+		# Export Lua C API from liblove so the love/lovec executables do not
+		# statically link a second Luau (duplicate luaH_dummynode → crashes).
+		# Must keep extern "C" — bare dllexport C++-mangles lua_close etc.
+		if(WIN32)
+			target_compile_definitions(${_love_luau_tgt} PRIVATE
+				"LUA_API=extern \"C\" __declspec(dllexport)"
+				"LUACODE_API=extern \"C\" __declspec(dllexport)"
+				"LUACODEGEN_API=extern \"C\" __declspec(dllexport)"
+			)
+		elseif(UNIX OR APPLE)
+			target_compile_definitions(${_love_luau_tgt} PRIVATE
+				"LUA_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODE_API=extern \"C\" __attribute__((visibility(\"default\")))"
+				"LUACODEGEN_API=extern \"C\" __attribute__((visibility(\"default\")))"
+			)
+		endif()
+	endif()
+endforeach()
+
+# Don't build unused Luau tooling as part of AppImage/`all`.
+foreach(_love_luau_skip Luau.Analysis Luau.Ast.CLI Luau.Analyze.CLI Luau.Compile.CLI Luau.Bytecode.CLI Luau.Reduce.CLI Luau.Repl.CLI Luau.UnitTest Luau.Conformance Luau.CLI.Test Luau.CLI.lib isocline)
+	if(TARGET ${_love_luau_skip})
+		set_target_properties(${_love_luau_skip} PROPERTIES EXCLUDE_FROM_ALL ON)
+	endif()
+endforeach()
 
 add_library(lovedep::SDL INTERFACE IMPORTED)
 add_library(lovedep::Freetype INTERFACE IMPORTED)
@@ -155,8 +202,13 @@ if(MEGA)
 	target_link_libraries(lovedep::Zlib INTERFACE ${MEGA_ZLIB})
 
 	# Luau is vendored in-tree or via FetchContent; ignore megasource LuaJIT / Lua 5.1.
-	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+	# Headers/defines only here — do NOT INTERFACE-link Luau.VM into dependents.
+	# Linking the static VM into both love.dll and lovec.exe duplicates dummynode and
+	# corrupts the Lua state (ACCESS_VIOLATION on table free / quit).
+	target_include_directories(lovedep_Lua INTERFACE
+		$<TARGET_PROPERTY:Luau.VM,INTERFACE_INCLUDE_DIRECTORIES>
+		$<TARGET_PROPERTY:Luau.Compiler,INTERFACE_INCLUDE_DIRECTORIES>
+	)
 else()
 	if(MSVC OR ANDROID)
 		message(FATAL_ERROR "
@@ -204,21 +256,37 @@ Please see https://github.com/love2d/megasource
 	target_include_directories(lovedep::Zlib INTERFACE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(lovedep::Zlib INTERFACE ${ZLIB_LIBRARY})
 
-	target_link_libraries(lovedep_Lua INTERFACE Luau.VM Luau.Compiler)
-	target_include_directories(lovedep_Lua INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+	target_include_directories(lovedep_Lua INTERFACE
+		$<TARGET_PROPERTY:Luau.VM,INTERFACE_INCLUDE_DIRECTORIES>
+		$<TARGET_PROPERTY:Luau.Compiler,INTERFACE_INCLUDE_DIRECTORIES>
+	)
 endif()
 
 # Luau load/package/ref helpers used by the engine and third-party Lua C libs.
+# Keep these headers in a dedicated include dir — never add src/common to the
+# public include path (it shadows system <math.h>/<int.h> via love's math.h/int.h).
+#
+# IMPORTANT: do not INTERFACE-link Luau.VM / love_luau_compat through lovedep_Lua.
+# lovec/love.exe must import Lua symbols from love.dll only; a second static Luau
+# in the exe duplicates luaH_dummynode and crashes on lua_close.
 add_library(love_luau_compat STATIC
-	src/common/luau_compat.cpp
-	src/common/luau_compat.h
-	src/common/lauxlib.h
+	src/libraries/luau-compat/luau_compat.cpp
+	src/libraries/luau-compat/include/luau_compat.h
+	src/libraries/luau-compat/include/lauxlib.h
 )
 target_include_directories(love_luau_compat PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}/src/common
+	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
 )
-target_link_libraries(love_luau_compat PUBLIC Luau.VM Luau.Compiler)
-target_link_libraries(lovedep_Lua INTERFACE love_luau_compat)
+set_target_properties(love_luau_compat PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(love_luau_compat PRIVATE Luau.VM Luau.Compiler)
+if(WIN32)
+	target_compile_definitions(love_luau_compat PRIVATE "LOVE_LUAU_EXPORT=__declspec(dllexport)")
+endif()
+target_include_directories(lovedep_Lua INTERFACE
+	${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/luau-compat/include
+)
+target_compile_definitions(lovedep_Lua INTERFACE LOVE_LUAU=1)
+# C++ TUs must wrap Luau headers in extern "C" { ... } (see runtime.h / lauxlib.h).
 
 ###
 ### No Megasource-specific stuff beyond this point!
@@ -1958,7 +2026,57 @@ set(LIBLOVE_LIBRARIES
 	love_3p_wuff
 	love_3p_xxhash
 )
-target_link_libraries(liblove ${LIBLOVE_DEPENDENCIES} ${LIBLOVE_LIBRARIES})
+# On ELF, a single pass over love's many STATIC archives leaves UND symbols in
+# liblove.so (glad/box2d/physfs/...). Linking the love executable then fails
+# under ld's default --no-allow-shlib-undefined. RESCAN (--start-group) needs
+# real archive targets — INTERFACE module umbrellas like love_graphics cannot
+# go in LINK_GROUP. AppImage ships CMake 3.30 (LINK_GROUP needs 3.24+).
+if(UNIX AND NOT APPLE AND NOT ANDROID AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+	set(_liblove_static_archives
+		love_common
+		love_audio_root love_audio_null love_audio_openal
+		love_data
+		love_event_root love_event_sdl
+		love_filesystem_root love_filesystem_physfs
+		love_font_root love_font_freetype
+		love_graphics_root love_graphics_opengl love_graphics_vulkan
+		love_image_root love_image_magpie
+		love_joystick_root love_joystick_sdl
+		love_keyboard_root love_keyboard_sdl
+		love_math
+		love_mouse_root love_mouse_sdl
+		love_physics_root love_physics_box2d
+		love_sensor_root love_sensor_sdl
+		love_sound_root love_sound_lullaby
+		love_system_root love_system_sdl
+		love_thread_root love_thread_sdl
+		love_timer
+		love_touch_root love_touch_sdl
+		love_video_root love_video_theora
+		love_window_root love_window_sdl
+		${LIBLOVE_LIBRARIES}
+	)
+	string(REPLACE ";" "," _liblove_rescan "${_liblove_static_archives}")
+	target_link_libraries(liblove PRIVATE
+		"$<LINK_GROUP:RESCAN,${_liblove_rescan}>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.VM>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,Luau.Compiler>"
+		"$<LINK_LIBRARY:WHOLE_ARCHIVE,love_luau_compat>"
+	)
+	# Export Luau (and other) symbols for the love executable to bind.
+	set_target_properties(liblove PROPERTIES
+		C_VISIBILITY_PRESET default
+		CXX_VISIBILITY_PRESET default
+		VISIBILITY_INLINES_HIDDEN OFF)
+else()
+	target_link_libraries(liblove PRIVATE
+		${LIBLOVE_DEPENDENCIES}
+		${LIBLOVE_LIBRARIES}
+		Luau.VM
+		Luau.Compiler
+		love_luau_compat
+	)
+endif()
 
 if(LOVE_EXTRA_DEPENDECIES)
 	add_dependencies(liblove ${LOVE_EXTRA_DEPENDECIES})
@@ -1973,7 +2091,9 @@ love_group_projects(NAME "liblove/libraries" NESTED TARGETS ${LIBLOVE_LIBRARIES}
 love_group_projects(NAME "liblove" TARGETS liblove ${LOVE_EXTRA_DEPENDECIES})
 
 love_group_projects(NAME "lovedep" TARGETS lovedep::SDL lovedep::Freetype lovedep::Harfbuzz lovedep::OpenAL lovedep::Modplug lovedep::Theora lovedep::Vorbis lovedep::Ogg lovedep::Zlib lovedep_Lua)
-love_group_projects(NAME "lovedep" TARGETS lua51 alcommon al-excommon harfbuzz-subset zlib)
+if(TARGET lua51)
+	love_group_projects(NAME "lovedep" TARGETS lua51 alcommon al-excommon harfbuzz-subset zlib)
+endif()
 
 
 if(MSVC)
@@ -1982,7 +2102,7 @@ if(MSVC)
 endif()
 
 if(MSVC OR MINGW)
-	target_link_libraries(liblove
+	target_link_libraries(liblove PRIVATE
 		ws2_32${WIN32_LIB_EXT}
 		winmm${WIN32_LIB_EXT}
 		dwmapi${WIN32_LIB_EXT}
@@ -1999,13 +2119,20 @@ endif()
 #
 if(ANDROID)
 	add_library(love SHARED) # On Android, the LOVE main entrypoint needs to be compiled as shared library
-	target_link_libraries(liblove android)
+	target_link_libraries(liblove PRIVATE android)
 else()
 	add_executable(love WIN32)
 endif()
 
 target_sources(love PRIVATE src/love.cpp)
-target_link_libraries(love liblove)
+# Headers/defines for Lua + SDL. Luau is linked only into liblove (exported).
+target_link_libraries(love PRIVATE liblove lovedep_Lua lovedep::SDL)
+if(WIN32)
+	target_compile_definitions(love PRIVATE
+		"LUA_API=extern \"C\" __declspec(dllimport)"
+		"LOVE_LUAU_EXPORT=__declspec(dllimport)"
+	)
+endif()
 set_target_properties(love PROPERTIES
 	C_VISIBILITY_PRESET hidden
 	CXX_VISIBILITY_PRESET hidden
@@ -2014,7 +2141,13 @@ set_target_properties(love PROPERTIES
 
 if(MSVC OR MINGW)
 	add_executable(lovec src/love.cpp)
-	target_link_libraries(lovec liblove)
+	target_link_libraries(lovec PRIVATE liblove lovedep_Lua lovedep::SDL)
+	if(WIN32)
+		target_compile_definitions(lovec PRIVATE
+			"LUA_API=extern \"C\" __declspec(dllimport)"
+			"LOVE_LUAU_EXPORT=__declspec(dllimport)"
+		)
+	endif()
 	set_target_properties(lovec PROPERTIES
 		OUTPUT_NAME ${LOVE_CONSOLE_EXE_NAME})
 endif()

@@ -43,6 +43,7 @@
 
 // C
 #include <cstdio>
+#include <cstdlib>
 
 #ifdef LOVE_GRAPHICS_VULKAN
 #include <SDL3/SDL_vulkan.h>
@@ -239,9 +240,13 @@ std::vector<Window::ContextAttribs> Window::getContextAttribsList() const
 		}
 	}
 
+	// Prefer SDL hint, but also honor the env var directly (same pattern as
+	// LOVE_GRAPHICS_DEBUG via getenv). Some hosts set only the environment.
 	const char *gleshint = SDL_GetHint("LOVE_GRAPHICS_USE_OPENGLES");
+	if (gleshint == nullptr)
+		gleshint = std::getenv("LOVE_GRAPHICS_USE_OPENGLES");
 	if (gleshint != nullptr)
-		preferGLES = (gleshint != nullptr && gleshint[0] != '0');
+		preferGLES = (gleshint[0] != '0');
 
 	// Do we want a debug context?
 	bool debug = love::graphics::isDebugEnabled();

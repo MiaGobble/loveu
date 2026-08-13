@@ -659,15 +659,8 @@ int luaopen_love(lua_State *L)
 #endif
 
 #ifdef LOVE_ENABLE_WINDOW
-	// In some environments, LuaJIT is limited to 2GB and LuaJIT sometimes panic when it
-	// reaches OOM and closes the whole program, leaving the user confused about what's
-	// going on.
-	// We can't recover the state at this point, but it's better to inform user that
-	// something very bad happening instead of silently exiting.
-	// Note that this is not foolproof. In some cases, the whole process crashes by
-	// uncaught exception that LuaJIT throws or simply exit as if calling
-	// love.event.quit("not enough memory")
-	lua_atpanic(L, [](lua_State *L)
+	// Show a dialog if the VM panics (unprotected error with longjmp).
+	lua_callbacks(L)->panic = [](lua_State *L, int /*errcode*/)
 	{
 		using namespace love;
 		using namespace love::window;
@@ -681,8 +674,7 @@ int luaopen_love(lua_State *L)
 			windowModule->showMessageBox("Lua Fatal Error", message, Window::MESSAGEBOX_ERROR, windowModule->isOpen());
 
 		fprintf(stderr, "%s\n", message);
-		return 0;
-	});
+	};
 #endif
 
 	return 1;
@@ -765,7 +757,7 @@ int w__openConsole(lua_State *L)
 	const char *err = nullptr;
 	bool isopen = love_openConsole(err);
 	if (err != nullptr)
-		return luaL_error(L, err);
+		return luaL_error(L, "%s", err);
 	love::luax_pushboolean(L, isopen);
 	return 1;
 }

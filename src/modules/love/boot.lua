@@ -74,7 +74,8 @@ function love.boot()
 	invalid_game_path = nil
 
 	-- Is this one of those fancy "fused" games?
-	local can_has_game = pcall(love.filesystem.setSource, exepath)
+	-- setSource returns boolean under Luau (errors AV with LONGJMP+MSVC).
+	local can_has_game = love.filesystem.setSource(exepath)
 
 	-- It's a fused game, don't parse --game argument
 	if can_has_game then
@@ -120,7 +121,7 @@ function love.boot()
 			end
 		end
 
-		can_has_game = pcall(love.filesystem.setSource, full_source)
+		can_has_game = love.filesystem.setSource(full_source)
 
 		if not can_has_game then
 			invalid_game_path = full_source

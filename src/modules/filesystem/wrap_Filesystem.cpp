@@ -29,6 +29,8 @@
 
 #include "physfs/Filesystem.h"
 
+#include <stdio.h>
+
 #ifdef LOVE_ANDROID
 #include "common/android.h"
 #endif
@@ -98,10 +100,11 @@ int w_setSource(lua_State *L)
 {
 	const char *arg = luaL_checkstring(L, 1);
 
-	if (!instance()->setSource(arg))
-		return luaL_error(L, "Could not set source.");
-
-	return 0;
+	// Return boolean instead of raising an error on failure.
+	// Luau + LUA_USE_LONGJMP on MSVC ACCESS_VIOLATEs when luaL_error
+	// longjmps through these C++ frames under pcall.
+	lua_pushboolean(L, instance()->setSource(arg));
+	return 1;
 }
 
 int w_getSource(lua_State *L)

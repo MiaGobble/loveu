@@ -19,6 +19,11 @@
 
 #define LOVE_LUAU 1
 
+#ifndef lua_assert
+#include <assert.h>
+#define lua_assert(x) assert(x)
+#endif
+
 /* Luau's lua_pushcfunction / lua_pushcclosure require a debug name. */
 #undef lua_pushcfunction
 #undef lua_pushcclosure
@@ -31,7 +36,15 @@
 #define LUA_NOREF (-2)
 #define LUA_REFNIL (-1)
 
-/* Make noreturn error helpers usable in `return luaL_error(...)`. */
+/* Make noreturn error helpers usable in `return luaL_error(...)` / `return lua_error(L)`.
+ * Luau declares these as void; Lua 5.1 returned int. */
+static inline int love_compat_lua_error(lua_State *L)
+{
+	lua_error(L);
+	return 0;
+}
+#define lua_error(L) love_compat_lua_error(L)
+
 #undef luaL_error
 #undef luaL_typeerror
 #undef luaL_argerror
@@ -61,6 +74,10 @@
 
 #define luaL_reg luaL_Reg
 
+#ifndef lua_register
+#define lua_register(L, n, f) (lua_pushcfunction((L), (f)), lua_setglobal((L), (n)))
+#endif
+
 /* Provide a classic lauxlib.h include path for third-party C libraries. */
 #ifndef LOVE_LUAU_LAUXLIB_GUARD
 #define LOVE_LUAU_LAUXLIB_GUARD
@@ -70,18 +87,28 @@
 extern "C" {
 #endif
 
-int luaL_ref(lua_State *L, int t);
-void luaL_unref(lua_State *L, int t, int ref);
+#ifndef LOVE_LUAU_EXPORT
+#if defined(__GNUC__) || defined(__clang__)
+#define LOVE_LUAU_EXPORT __attribute__((visibility("default")))
+#elif defined(_WIN32)
+#define LOVE_LUAU_EXPORT __declspec(dllexport)
+#else
+#define LOVE_LUAU_EXPORT
+#endif
+#endif
+
+LOVE_LUAU_EXPORT int luaL_ref(lua_State *L, int t);
+LOVE_LUAU_EXPORT void luaL_unref(lua_State *L, int t, int ref);
 
 /* Compile Luau source and load bytecode. Returns LUA_OK or an error code. */
-int luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name);
-int luaL_loadbufferx(lua_State *L, const char *buff, size_t sz, const char *name, const char *mode);
-int luaL_loadstring(lua_State *L, const char *s);
-int luaL_loadfile(lua_State *L, const char *filename);
+LOVE_LUAU_EXPORT int luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name);
+LOVE_LUAU_EXPORT int luaL_loadbufferx(lua_State *L, const char *buff, size_t sz, const char *name, const char *mode);
+LOVE_LUAU_EXPORT int luaL_loadstring(lua_State *L, const char *s);
+LOVE_LUAU_EXPORT int luaL_loadfile(lua_State *L, const char *filename);
 
 /* Minimal package / require (Luau does not ship package). */
-int luaopen_love_package(lua_State *L);
-void love_open_package(lua_State *L);
+LOVE_LUAU_EXPORT int luaopen_love_package(lua_State *L);
+LOVE_LUAU_EXPORT void love_open_package(lua_State *L);
 
 #ifdef __cplusplus
 }

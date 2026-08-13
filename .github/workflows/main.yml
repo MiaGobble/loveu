@@ -5,6 +5,7 @@ jobs:
   Linux:
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-22.04, ubuntu-24.04-arm]
     permissions:
@@ -54,6 +55,11 @@ jobs:
         sed -i 's# installdir/lib/libluajit-5.1.so##g' Makefile
         sed -i 's# -DLuaJIT_ROOT=installdir##g' Makefile
         sed -i 's# \$(LUAJIT_PATH)/Makefile##g' Makefile
+        if grep -E 'CMakeCache.txt.*libluajit| -DLuaJIT_ROOT' Makefile; then
+          echo "ERROR: Makefile still requires LuaJIT for love configure" >&2
+          exit 1
+        fi
+        grep -n 'CMakeCache.txt\|installdir/bin/love\|^getdeps' Makefile || true
     - name: Get Dependencies for AppImage
       shell: python
       env:
@@ -65,7 +71,46 @@ jobs:
                 raise SystemExit(0)
         raise Exception("make getdeps failed")
     - name: Build AppImage
-      run: make LOVE_BRANCH=${{ github.sha }}
+      run: |
+        set -o pipefail
+        make LOVE_BRANCH=${{ github.sha }} 2>&1 | tee appimage-build.log
+        status=${PIPESTATUS[0]}
+        if [ "$status" -ne 0 ]; then
+          echo "===== last 60 log lines ====="
+          tail -n 60 appimage-build.log || true
+          # Always publish the tail as check annotations (visible without log auth).
+          tail -n 60 appimage-build.log | while IFS= read -r line; do
+            # Truncate to keep annotation payload reasonable.
+            echo "::error::${line:0:200}"
+          done || true
+          exit "$status"
+        fi
+    - name: Upload AppImage build log
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: appimage-build-log-${{ runner.arch }}
+        path: appimage-build.log
+        if-no-files-found: ignore
+    - name: Comment AppImage failure on PR
+      if: failure()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [ ! -f appimage-build.log ]; then exit 0; fi
+        PR=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.ref_name }}" --json number -q '.[0].number' || true)
+        if [ -z "$PR" ]; then
+          echo "No open PR for ${{ github.ref_name }}; skipping comment"
+          exit 0
+        fi
+        {
+          echo "### AppImage build failed (\`${{ runner.os }}\` / \`${{ runner.arch }}\`, \`${{ github.sha }}\`)"
+          echo
+          echo '```'
+          tail -n 80 appimage-build.log
+          echo '```'
+        } > /tmp/appimage-fail.md
+        gh pr comment "$PR" --repo "${{ github.repository }}" --body-file /tmp/appimage-fail.md
     - name: Print LuaJIT branch (optional)
       continue-on-error: true
       run: git -C LuaJIT-v2.1 branch -v
@@ -94,7 +139,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengl)
       run: |
-        7z a -tzip test-output-linux-opengl-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-opengl.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (opengl)
       uses: actions/upload-artifact@v4
       with:
@@ -117,7 +162,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengles)
       run: |
-        7z a -tzip test-output-linux-opengles-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-opengles.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (opengles)
       uses: actions/upload-artifact@v4
       with:
@@ -139,7 +184,7 @@ jobs:
         path: love2d-${{ github.sha }}/testing/output/lovetest_all.md
     - name: Zip Test Output (vulkan)
       run: |
-        7z a -tzip test-output-linux-vulkan-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-vulkan.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (vulkan)
       uses: actions/upload-artifact@v4
       with:
@@ -149,14 +194,18 @@ jobs:
       # should always stop xvfb and openbox even if other steps failed
       if: always()
       run: |
-        kill $XVFBPID
-        kill $OPENBOXPID
+        # Processes may already have exited (especially on ARM); don't fail the job for teardown.
+        if [ -n "${OPENBOXPID:-}" ]; then kill "$OPENBOXPID" 2>/dev/null || true; fi
+        if [ -n "${XVFBPID:-}" ]; then kill "$XVFBPID" 2>/dev/null || true; fi
     - name: Artifact
+      # Upload even if teardown failed; AppImage build success is independent of xvfb cleanup.
+      if: always() && hashFiles(format('love-{0}.AppImage', github.sha)) != ''
       uses: actions/upload-artifact@v4
       with:
         name: love-linux-${{ runner.arch }}.AppImage
         path: love-${{ github.sha }}.AppImage
     - name: Artifact Debug Symbols
+      if: always() && hashFiles(format('love-{0}.AppImage-debug.tar.gz', github.sha)) != ''
       uses: actions/upload-artifact@v4
       with:
         name: love-${{ runner.arch }}-AppImage-debug
@@ -175,10 +224,11 @@ jobs:
       checks: write
       pull-requests: write
     env: 
-      ALSOFT_CONF: megasource/libs/love/testing/resources/alsoft.conf
+      ALSOFT_CONF: ${{ github.workspace }}/megasource/libs/love/testing/resources/alsoft.conf
       VK_ICD_FILENAMES: ${{ github.workspace }}\mesa\x64\lvp_icd.x86_64.json
       VULKAN_SDK: C:/VulkanSDK/1.3.231.1
     strategy:
+      fail-fast: false
       matrix:
         platform: [x64, ARM64]
     defaults:
@@ -204,6 +254,8 @@ jobs:
         
         :x64
         (echo arch=x64)>> "%GITHUB_OUTPUT%"
+        rem Match upstream: Mesa provides GL/GLES on x64. Bundling ANGLE here
+        rem poisons GLES (libEGL/libGLESv2 next to lovec) with STATUS_INVALID_PARAMETER.
         (echo angle=0)>> "%GITHUB_OUTPUT%"
         echo nofiles=warn>> "%GITHUB_OUTPUT%"
         exit /b 0
@@ -285,7 +337,23 @@ jobs:
         LDFLAGS: /DEBUG:FULL /OPT:REF /OPT:ICF
       run: cmake -Bbuild -Smegasource -T v145 -A ${{ matrix.platform }} --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb ${{ steps.vars.outputs.moredef }}
     - name: Install
+      id: package
       run: cmake --build build --target PACKAGE --config Release -j2
+    - name: Dump Install errors
+      if: failure() && steps.package.outcome == 'failure'
+      shell: powershell
+      run: |
+        $log = Get-ChildItem -Path build -Recurse -Filter '*.log' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5
+        $log | ForEach-Object { Write-Host "=== $($_.FullName) ==="; Get-Content $_.FullName -Tail 30 }
+        # MSBuild/clang style errors from the last build output aren't captured; re-run a focused build for annotations.
+        cmake --build build --target love --config Release -j1 2>&1 | Tee-Object -FilePath build-love-errors.txt | Out-Host
+        Get-Content build-love-errors.txt -Tail 80 | ForEach-Object {
+          $line = $_
+          if ($line.Length -gt 200) { $line = $line.Substring(0,200) }
+          if ($line -match 'error|Error|fatal') { Write-Host "::error::$line" }
+          else { Write-Host $line }
+        }
+
     - name: Copy LuaJIT lua51.pdb
       run: |
         copy /Y build\libs\LuaJIT\src\lua51.pdb pdb\Release\lua51.pdb
@@ -323,8 +391,22 @@ jobs:
     - name: Install Mesa 
       if: steps.vars.outputs.arch != 'ARM64'
       run: |
-        curl -L --output mesa.7z --url https://github.com/pal1000/mesa-dist-win/releases/download/24.2.4/mesa3d-24.2.4-release-msvc.7z
+        setlocal EnableExtensions
+        set URL=https://github.com/pal1000/mesa-dist-win/releases/download/24.2.4/mesa3d-24.2.4-release-msvc.7z
+        set ATTEMPT=0
+        :retry
+        set /a ATTEMPT+=1
+        curl -L --retry 5 --retry-delay 5 --retry-all-errors --output mesa.7z --url %URL%
+        if errorlevel 1 (
+          if %ATTEMPT% LSS 3 (
+            echo Mesa download failed, retry %ATTEMPT%...
+            ping -n 6 127.0.0.1 >nul
+            goto retry
+          )
+          exit /b 1
+        )
         7z x mesa.7z -o*
+        if errorlevel 1 exit /b 1
         powershell.exe mesa\systemwidedeploy.cmd 1
     # build love to use for the tests
     - name: Build Test Exe
@@ -337,8 +419,10 @@ jobs:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
         echo 'check dir'
-        ls
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers opengl
+        dir install
+        if exist install\lua51.dll del /f /q install\lua51.dll
+        cd install
+        lovec.exe ..\megasource\libs\love\testing\main.luau --all --isRunner --renderers opengl
     - name: Love Test Report (opengl)
       id: report1
       if: steps.vars.outputs.arch != 'ARM64'
@@ -361,14 +445,27 @@ jobs:
     # windows opengles tests
     - name: Run Tests (opengles)
       if: steps.vars.outputs.arch != 'ARM64'
+      id: gles
       env:
         LOVE_GRAPHICS_DEBUG: 1
         LOVE_GRAPHICS_USE_OPENGLES: 1
       run: |
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.luau --all --isRunner --renderers opengl
+        if exist install\lua51.dll del /f /q install\lua51.dll
+        cd install
+        lovec.exe ..\megasource\libs\love\testing\main.luau --all --isRunner --renderers opengl
+        set EXITCODE=%ERRORLEVEL%
+        if not "%EXITCODE%"=="0" (
+          echo ::error::Windows OpenGLES lovec exited with code %EXITCODE%
+          if exist ..\megasource\libs\love\testing\output\lovetest_all.md (
+            powershell -NoProfile -Command "Get-Content -LiteralPath '..\megasource\libs\love\testing\output\lovetest_all.md' -Tail 40 | ForEach-Object { if ($_.Length -gt 200) { $_ = $_.Substring(0,200) }; Write-Output ('::error::' + $_)}"
+          ) else (
+            echo ::error::No lovetest_all.md after OpenGLES crash - likely died before/during suite finish
+          )
+          exit /b %EXITCODE%
+        )
     - name: Love Test Report (opengles)
       id: report2
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64' && hashFiles('megasource/libs/love/testing/output/lovetest_all.md') != ''
       uses: ellraiser/love-test-report@main
       with:
         name: Love Testsuite Windows ${{ steps.vars.outputs.arch }} (opengles)
@@ -376,15 +473,20 @@ jobs:
         path: megasource/libs/love/testing/output/lovetest_all.md
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64'
       run: |
-        7z a -tzip test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip megasource/libs/love/testing/output/
+        if exist megasource\libs\love\testing\output (
+          7z a -tzip test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip megasource/libs/love/testing/output/
+        ) else (
+          echo No test output directory to zip
+        )
     - name: Artifact Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
+      if: always() && steps.vars.outputs.arch != 'ARM64'
       uses: actions/upload-artifact@v4
       with:
-        name: test-output-windows-${{ steps.vars.outputs.arch }}-opengles-${{ steps.report2.outputs.conclusion }}
+        name: test-output-windows-${{ steps.vars.outputs.arch }}-opengles-${{ steps.report2.outputs.conclusion || steps.gles.outcome }}
         path: test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip
+        if-no-files-found: ignore
     - name: Check Tests Passing
       if: steps.report1.outputs.conclusion == 'failure' || steps.report2.outputs.conclusion == 'failure'
       run: |
@@ -538,7 +640,7 @@ jobs:
         mv apple-dependencies/shared platform/xcode
     - name: Build
       run:
-        xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15'
+        xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 
   Android:
     runs-on: ubuntu-latest

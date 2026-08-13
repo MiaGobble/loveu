@@ -2400,6 +2400,7 @@
 		54067CFB7D564E5764FA17DC /* love */ = {
 			isa = PBXGroup;
 			children = (
+				B0A11C01C01C01C01C01C020 /* luau-compat */,
 				FA0B78F61A958E3B000E1D17 /* common */,
 				FA0B794D1A958EA3000E1D17 /* libraries */,
 				FA0B7B3C1A95902C000E1D17 /* modules */,
@@ -2458,6 +2459,24 @@
 			name = Resources;
 			sourceTree = "<group>";
 		};
+		B0A11C01C01C01C01C01C021 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				B0A11C01C01C01C01C01C004 /* luau_compat.h */,
+				B0A11C01C01C01C01C01C006 /* lauxlib.h */,
+			);
+			path = "include";
+			sourceTree = "<group>";
+		};
+		B0A11C01C01C01C01C01C020 /* luau-compat */ = {
+			isa = PBXGroup;
+			children = (
+				B0A11C01C01C01C01C01C001 /* luau_compat.cpp */,
+				B0A11C01C01C01C01C01C021 /* include */,
+			);
+			path = "../../src/libraries/luau-compat";
+			sourceTree = "<group>";
+		};
 		FA0B78F61A958E3B000E1D17 /* common */ = {
 			isa = PBXGroup;
 			children = (
@@ -2501,9 +2520,6 @@
 				FA0B790C1A958E3B000E1D17 /* Reference.cpp */,
 				FA0B790D1A958E3B000E1D17 /* Reference.h */,
 				FA0B790E1A958E3B000E1D17 /* runtime.cpp */,
-				B0A11C01C01C01C01C01C001 /* luau_compat.cpp */,
-				B0A11C01C01C01C01C01C004 /* luau_compat.h */,
-				B0A11C01C01C01C01C01C006 /* lauxlib.h */,
 				FA0B790F1A958E3B000E1D17 /* runtime.h */,
 				FA9D8DD51DEF8411002CD881 /* Stream.cpp */,
 				FA9D8DD61DEF8411002CD881 /* Stream.h */,
@@ -2594,7 +2610,7 @@
 			children = (
 				FA0B79C01A958EA3000E1D17 /* enet */,
 			);
-			path = include;
+			path = "include";
 			sourceTree = "<group>";
 		};
 		FA0B79C01A958EA3000E1D17 /* enet */ = {
@@ -3558,7 +3574,7 @@
 			children = (
 				FA18CEF623DCF67800263725 /* spirv_cross */,
 			);
-			path = include;
+			path = "include";
 			sourceTree = "<group>";
 		};
 		FA18CEF623DCF67800263725 /* spirv_cross */ = {
@@ -5630,7 +5646,11 @@
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = LOVE_APPLE_USE_FRAMEWORKS;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					LOVE_APPLE_USE_FRAMEWORKS,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
@@ -5696,6 +5716,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					LOVE_APPLE_USE_FRAMEWORKS,
 					"DEBUG=1",
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5737,6 +5759,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -5744,7 +5768,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5781,13 +5805,15 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5825,13 +5851,15 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					LOVE_SUPPORT_COREAUDIO,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 				);
 				LIBRARY_SEARCH_PATHS = (
@@ -5888,7 +5916,11 @@
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = LOVE_APPLE_USE_FRAMEWORKS;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					LOVE_APPLE_USE_FRAMEWORKS,
+					"LOVE_LUAU=1",
+					"LUA_USE_LONGJMP=1",
+				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS = YES;
@@ -5938,9 +5970,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+						"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
@@ -5984,9 +6016,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+						"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
@@ -6031,9 +6063,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/macosx/Frameworks/freetype.framework/Headers",
-										"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
+						"$(PROJECT_DIR)/../../src/libraries/luau/VM/include",
 					"$(PROJECT_DIR)/../../src/libraries/luau/Compiler/include",
-					"$(PROJECT_DIR)/../../src/common",
+					"$(PROJECT_DIR)/../../src/libraries/luau-compat/include",
 					"$(PROJECT_DIR)/build/luau-$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/macosx/Frameworks/SDL2.framework/Headers",
 					"$(PROJECT_DIR)/macosx/Frameworks/harfbuzz.framework/Headers",
