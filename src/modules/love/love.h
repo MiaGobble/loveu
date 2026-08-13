@@ -33,6 +33,7 @@ extern "C"
 #endif
 
 LOVE_EXPORT const char *love_version();
+LOVE_EXPORT const char *loveu_version();
 LOVE_EXPORT const char *love_codename();
 LOVE_EXPORT int luaopen_love(lua_State *L);
 LOVE_EXPORT int luaopen_love_nogame(lua_State *L);

@@ -31,6 +31,9 @@
 
 #include <stdio.h>
 #include <cstring>
+#include <string_view>
+
+#include "libraries/tomlplusplus/toml.hpp"
 
 #ifdef LOVE_ANDROID
 #include "common/android.h"
@@ -870,6 +873,200 @@ int w_setCRequirePath(lua_State *L)
 	return 0;
 }
 
+// Normalize a virtual path, returning false if it escapes the game root.
+static bool normalizeVirtualPath(const std::string &path, std::string &out);
+
+static std::string requireTomlString(const toml::table &table, const char *key, std::string &error)
+{
+	auto node = table[key];
+	if (!node)
+	{
+		error = std::string("loveu.toml is missing required field '") + key + "'";
+		return {};
+	}
+	auto str = node.value<std::string>();
+	if (!str)
+	{
+		error = std::string("loveu.toml field '") + key + "' must be a string";
+		return {};
+	}
+	if (str->empty())
+	{
+		error = std::string("loveu.toml field '") + key + "' must not be empty";
+		return {};
+	}
+	return *str;
+}
+
+static void pushTomlNode(lua_State *L, const toml::node &node)
+{
+	if (auto v = node.value<std::string>())
+	{
+		luax_pushstring(L, *v);
+		return;
+	}
+	if (auto v = node.value<bool>())
+	{
+		lua_pushboolean(L, *v);
+		return;
+	}
+	if (auto v = node.value<int64_t>())
+	{
+		lua_pushnumber(L, (lua_Number)*v);
+		return;
+	}
+	if (auto v = node.value<double>())
+	{
+		lua_pushnumber(L, (lua_Number)*v);
+		return;
+	}
+	if (auto arr = node.as_array())
+	{
+		lua_createtable(L, (int)arr->size(), 0);
+		int i = 1;
+		for (auto &&el : *arr)
+		{
+			pushTomlNode(L, el);
+			lua_rawseti(L, -2, i++);
+		}
+		return;
+	}
+	if (auto tbl = node.as_table())
+	{
+		lua_createtable(L, 0, (int)tbl->size());
+		for (auto &&[k, v] : *tbl)
+		{
+			pushTomlNode(L, v);
+			lua_setfield(L, -2, std::string(k.str()).c_str());
+		}
+		return;
+	}
+
+	lua_pushnil(L);
+}
+
+static void pushOptionalConfig(lua_State *L, const toml::table &table)
+{
+	static const char *keys[] = {
+		"console", "appendidentity", "externalstorage", "highdpi", "trackpadtouch",
+		"title", "window", "modules", "graphics", "audio", nullptr
+	};
+
+	lua_createtable(L, 0, 8);
+	int count = 0;
+	for (int i = 0; keys[i] != nullptr; i++)
+	{
+		auto node = table[keys[i]];
+		if (!node)
+			continue;
+		pushTomlNode(L, *node.node());
+		lua_setfield(L, -2, keys[i]);
+		count++;
+	}
+
+	if (count == 0)
+	{
+		lua_pop(L, 1);
+		lua_pushnil(L);
+	}
+}
+
+int w_loadProjectManifest(lua_State *L)
+{
+	const char *filename = "loveu.toml";
+	auto *inst = instance();
+
+	if (!inst->exists(filename))
+		return luaL_error(L, "missing loveu.toml (required project manifest at the game root)");
+
+	FileData *data = nullptr;
+	try
+	{
+		data = inst->read(filename);
+	}
+	catch (love::Exception &e)
+	{
+		return luaL_error(L, "could not read loveu.toml: %s", e.what());
+	}
+
+	std::string contents((const char *)data->getData(), (size_t)data->getSize());
+	data->release();
+
+	toml::table table;
+	try
+	{
+		table = toml::parse(std::string_view{contents}, std::string_view{filename});
+	}
+	catch (const toml::parse_error &e)
+	{
+		return luaL_error(L, "invalid loveu.toml: %s", e.what());
+	}
+
+	std::string error;
+	std::string name = requireTomlString(table, "name", error);
+	if (!error.empty())
+		return luaL_error(L, "%s", error.c_str());
+
+	std::string version = requireTomlString(table, "version", error);
+	if (!error.empty())
+		return luaL_error(L, "%s", error.c_str());
+
+	std::string engineVersion = requireTomlString(table, "engine_version", error);
+	if (!error.empty())
+		return luaL_error(L, "%s", error.c_str());
+
+	std::string codeRoot;
+	{
+		auto node = table["code_root"];
+		if (!node)
+			return luaL_error(L, "loveu.toml is missing required field 'code_root'");
+		auto str = node.value<std::string>();
+		if (!str)
+			return luaL_error(L, "loveu.toml field 'code_root' must be a string");
+		codeRoot = *str;
+	}
+
+	if (codeRoot.empty())
+		codeRoot = ".";
+
+	// Normalize separators and reject absolute / escaping paths.
+	for (char &c : codeRoot)
+	{
+		if (c == '\\')
+			c = '/';
+	}
+	while (!codeRoot.empty() && codeRoot.back() == '/')
+		codeRoot.pop_back();
+	if (codeRoot.empty())
+		codeRoot = ".";
+
+	if (codeRoot != ".")
+	{
+		if (codeRoot[0] == '/' || (codeRoot.size() >= 2 && codeRoot[1] == ':'))
+			return luaL_error(L, "loveu.toml code_root must be a relative path");
+
+		std::string normalized;
+		if (!normalizeVirtualPath(codeRoot, normalized) || normalized.empty())
+			return luaL_error(L, "loveu.toml code_root must not escape the project root");
+		codeRoot = normalized;
+	}
+
+	inst->setProjectCodeRoot(codeRoot);
+
+	lua_createtable(L, 0, 5);
+	luax_pushstring(L, name);
+	lua_setfield(L, -2, "name");
+	luax_pushstring(L, version);
+	lua_setfield(L, -2, "version");
+	luax_pushstring(L, engineVersion);
+	lua_setfield(L, -2, "engine_version");
+	luax_pushstring(L, codeRoot);
+	lua_setfield(L, -2, "code_root");
+	pushOptionalConfig(L, table);
+	lua_setfield(L, -2, "config");
+	return 1;
+}
+
 static void replaceAll(std::string &str, const std::string &substr, const std::string &replacement)
 {
 	std::vector<size_t> locations;
@@ -972,6 +1169,26 @@ static bool resolveRelativeRequire(lua_State *L, const char *name, std::string &
 	{
 		lua_pushfstring(L, "module '%s' not found: relative path escapes game root", name);
 		return false;
+	}
+
+	if (normalized.empty())
+	{
+		lua_pushfstring(L, "module '%s' not found: resolved to empty path", name);
+		return false;
+	}
+
+	// When scripts live under code_root, strip that prefix so module names match
+	// require paths like "src/?.luau" (otherwise we get src/src/...).
+	const std::string &codeRoot = instance()->getProjectCodeRoot();
+	if (codeRoot != "." && !codeRoot.empty())
+	{
+		std::string prefix = codeRoot;
+		if (prefix.back() != '/')
+			prefix += '/';
+		if (normalized.compare(0, prefix.size(), prefix) == 0)
+			normalized = normalized.substr(prefix.size());
+		else if (normalized == codeRoot)
+			normalized.clear();
 	}
 
 	if (normalized.empty())
@@ -1219,6 +1436,7 @@ static const luaL_Reg functions[] =
 	{ "setRequirePath", w_setRequirePath },
 	{ "getCRequirePath", w_getCRequirePath },
 	{ "setCRequirePath", w_setCRequirePath },
+	{ "loadProjectManifest", w_loadProjectManifest },
 
 	// Deprecated
 	{ "newFile", w_newFile },

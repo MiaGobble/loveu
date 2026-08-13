@@ -158,9 +158,9 @@ static void print_usage()
         "https://love2d.org\n"
         "\n"
         "usage:\n"
-        "    love --version                  prints LOVE version and quits\n"
+        "    love --version                  prints loveu and LÖVE versions and quits\n"
         "    love --help                     prints this message and quits\n"
-        "    love path/to/gamedir            runs the game from the given directory which contains a main.luau file\n"
+        "    love path/to/gamedir            runs a game directory containing loveu.toml and main.luau\n"
         "    love path/to/packagedgame.love  runs the packaged game from the provided .love file\n"
         "    love path/to/file.luau          runs the game from the given .luau file\n"
         );
@@ -175,7 +175,7 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 		const char *err = nullptr;
 		love_openConsole(err);
 #endif
-		printf("LOVE %s (%s)\n", love_version(), love_codename());
+		printf("loveu %s (LÖVE %s \"%s\")\n", loveu_version(), love_version(), love_codename());
 		retval = 0;
 		return DONE_QUIT;
 	}
@@ -338,6 +338,13 @@ int main(int argc, char **argv)
 	{
 		printf("Version mismatch detected!\nLOVE binary is version %s\n"
 			   "LOVE library is version %s\n", LOVE_VERSION_STRING, love_version());
+		return 1;
+	}
+
+	if (strcmp(LOVEU_VERSION_STRING, loveu_version()) != 0)
+	{
+		printf("Version mismatch detected!\nloveu binary is version %s\n"
+			   "loveu library is version %s\n", LOVEU_VERSION_STRING, loveu_version());
 		return 1;
 	}
 

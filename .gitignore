@@ -41,6 +41,7 @@
 *.dylib
 /build-compat-test/
 /build-luau-test/
+/build-luau-tests-run/
 *.dmg*
 demos
 *.orig
@@ -78,3 +79,4 @@ stamp-h1
 /testing/output/*.md
 /testing/output/actual/*.png
 /testing/output/difference/*.png
+/examples/

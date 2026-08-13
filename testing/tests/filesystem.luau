@@ -566,6 +566,124 @@ return require("../../../../outside")
 end
 
 
+-- love.filesystem.loadProjectManifest / love.project
+love.test.filesystem.loadProjectManifest = function(test)
+  local function restoreProjectManifest()
+    love.filesystem.remove('loveu.toml')
+    love.filesystem.setRequirePath('?.luau;?/init.luau')
+    package.loaded['loader'] = nil
+    package.loaded['nested.mod'] = nil
+    package.loaded['util'] = nil
+    love.filesystem.remove('cr_src/loader.luau')
+    love.filesystem.remove('cr_src/nested/mod.luau')
+    love.filesystem.remove('cr_src/util.luau')
+    love.filesystem.remove('cr_src/nested')
+    love.filesystem.remove('cr_src')
+    love.project = love.filesystem.loadProjectManifest()
+  end
+
+  local okRun, errRun = pcall(function()
+    -- Boot already loaded the testing/ loveu.toml
+    test:assertNotEquals(nil, love.project, 'check love.project set at boot')
+    test:assertEquals('love-test', love.project.name, 'check project name')
+    test:assertEquals('0.0.0', love.project.version, 'check project version')
+    test:assertEquals(love._loveu_version, love.project.engine_version, 'check engine_version matches love._loveu_version')
+    test:assertEquals('.', love.project.code_root, 'check default code_root')
+
+    local loaded = love.filesystem.loadProjectManifest()
+    test:assertEquals('love-test', loaded.name, 'check reload name')
+    test:assertEquals('0.0.0', loaded.version, 'check reload version')
+    test:assertEquals(love._loveu_version, loaded.engine_version, 'check reload engine_version')
+    test:assertEquals('.', loaded.code_root, 'check reload code_root')
+    test:assertNotEquals(nil, loaded.config, 'check config table from loveu.toml')
+    test:assertEquals(true, loaded.config.console, 'check console from toml')
+    test:assertEquals(360, loaded.config.window.width, 'check window.width from toml')
+    test:assertEquals(240, loaded.config.window.height, 'check window.height from toml')
+
+    -- Invalid overlay in the save directory shadows the source manifest.
+    love.filesystem.write('loveu.toml', 'not valid toml {{{')
+    local okParse, errParse = pcall(love.filesystem.loadProjectManifest)
+    test:assertFalse(okParse, 'check invalid toml fails')
+    test:assertTrue(tostring(errParse):find('invalid loveu.toml', 1, true) ~= nil, 'check parse error message')
+
+    love.filesystem.write('loveu.toml', [[
+name = "x"
+version = "1.0.0"
+code_root = "."
+]])
+    local okMissingField, errMissingField = pcall(love.filesystem.loadProjectManifest)
+    test:assertFalse(okMissingField, 'check missing engine_version fails')
+    test:assertTrue(tostring(errMissingField):find("engine_version", 1, true) ~= nil, 'check missing field message')
+
+    love.filesystem.write('loveu.toml', string.format([[
+name = "x"
+version = "1.0.0"
+engine_version = "%s"
+code_root = "../outside"
+]], love._loveu_version))
+    local okEscape, errEscape = pcall(love.filesystem.loadProjectManifest)
+    test:assertFalse(okEscape, 'check escaping code_root fails')
+    test:assertTrue(tostring(errEscape):find('code_root', 1, true) ~= nil, 'check code_root escape message')
+
+    -- engine_version is validated at boot against love._loveu_version; loader still returns the field.
+    love.filesystem.write('loveu.toml', [[
+name = "mismatch"
+version = "1.0.0"
+engine_version = "0.0.0-not-real"
+code_root = "."
+]])
+    local mismatched = love.filesystem.loadProjectManifest()
+    test:assertEquals('0.0.0-not-real', mismatched.engine_version, 'check mismatched engine_version loads')
+    test:assertNotEquals(mismatched.engine_version, love._loveu_version, 'check boot would reject mismatched engine_version')
+
+    love.filesystem.write('loveu.toml', string.format([[
+name = "empty-root"
+version = "1.0.0"
+engine_version = "%s"
+code_root = ""
+]], love._loveu_version))
+    local emptyRoot = love.filesystem.loadProjectManifest()
+    test:assertEquals('.', emptyRoot.code_root, 'check empty code_root normalizes to .')
+
+    -- code_root nested scripts + relative require prefix stripping
+    love.filesystem.createDirectory('cr_src/nested')
+    love.filesystem.write('cr_src/util.luau', 'return { id = "util" }')
+    love.filesystem.write('cr_src/nested/mod.luau', 'return require("../util")')
+    love.filesystem.write('cr_src/loader.luau', 'return require("./nested/mod")')
+    love.filesystem.write('loveu.toml', string.format([[
+name = "code-root-game"
+version = "0.1.0"
+engine_version = "%s"
+code_root = "cr_src"
+]], love._loveu_version))
+    local coded = love.filesystem.loadProjectManifest()
+    test:assertEquals('cr_src', coded.code_root, 'check nested code_root')
+    test:assertEquals('code-root-game', coded.name, 'check code_root project name')
+    love.filesystem.setRequirePath('cr_src/?.luau;cr_src/?/init.luau')
+    local nested = require('loader')
+    test:assertEquals('util', nested.id, 'check relative require under code_root')
+
+    package.loaded['loader'] = nil
+    package.loaded['nested.mod'] = nil
+    package.loaded['util'] = nil
+    love.filesystem.remove('cr_src/loader.luau')
+    love.filesystem.remove('cr_src/nested/mod.luau')
+    love.filesystem.remove('cr_src/util.luau')
+    love.filesystem.remove('cr_src/nested')
+    love.filesystem.remove('cr_src')
+
+    -- Missing-file boot failure is covered by testing/resources/project_format/missing_manifest
+    -- (Luau's os library has no rename/remove for temporarily hiding the source manifest).
+  end)
+
+  restoreProjectManifest()
+  test:assertEquals('love-test', love.project.name, 'check project restored')
+  if not okRun then
+    error(errRun)
+  end
+end
+
+
 -- love.filesystem.setSource
 love.test.filesystem.setSource = function(test)
   test:skipTest('used internally')

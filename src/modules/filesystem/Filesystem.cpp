@@ -58,6 +58,16 @@ Filesystem::~Filesystem()
 {
 }
 
+void Filesystem::setProjectCodeRoot(const std::string &root)
+{
+	projectCodeRoot = root.empty() ? "." : root;
+}
+
+const std::string &Filesystem::getProjectCodeRoot() const
+{
+	return projectCodeRoot;
+}
+
 void Filesystem::setAndroidSaveExternal(bool useExternal)
 {	
 	this->useExternal = useExternal;
