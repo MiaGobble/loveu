@@ -524,6 +524,35 @@ love.test.filesystem.setRequirePath = function(test)
 end
 
 
+-- Relative require (./ and ../ resolve against the calling file)
+love.test.filesystem.relativeRequire = function(test)
+  love.filesystem.createDirectory('relreq/nested')
+  love.filesystem.write('relreq/target.luau', 'return { ok = true, id = "target" }')
+  love.filesystem.write('relreq/nested/from_nested.luau', [[
+return require("../target")
+]])
+  love.filesystem.write('relreq/loader.luau', [[
+local a = require("./nested/from_nested")
+local b = require("./target")
+return { a = a, b = b, same = a == b }
+]])
+
+  local result = require('relreq.loader')
+  test:assertEquals(true, result.a.ok, 'check nested relative require')
+  test:assertEquals('target', result.b.id, 'check sibling relative require')
+  test:assertEquals(true, result.same, 'check relative paths share package.loaded cache')
+
+  package.loaded['relreq.loader'] = nil
+  package.loaded['relreq.nested.from_nested'] = nil
+  package.loaded['relreq.target'] = nil
+  love.filesystem.remove('relreq/loader.luau')
+  love.filesystem.remove('relreq/nested/from_nested.luau')
+  love.filesystem.remove('relreq/target.luau')
+  love.filesystem.remove('relreq/nested')
+  love.filesystem.remove('relreq')
+end
+
+
 -- love.filesystem.setSource
 love.test.filesystem.setSource = function(test)
   test:skipTest('used internally')
