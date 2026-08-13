@@ -38,6 +38,7 @@ end
 local no_game_code = false
 local invalid_game_path = nil
 local main_file = "main.luau"
+local custom_main_file = false
 
 -- This can't be overridden.
 function love.boot()
@@ -97,7 +98,7 @@ function love.boot()
 	love.setDeprecationOutput(not love.filesystem.isFused())
 
 	main_file = "main.luau"
-	local custom_main_file = false
+	custom_main_file = false
 
 	local identity = ""
 	if not can_has_game and o.game.set and o.game.arg[1] then
@@ -134,11 +135,32 @@ function love.boot()
 		identity = love.path.leaf(exepath)
 	end
 
-	-- Try to use the archive containing main.luau as the identity name. It
-	-- might not be available, in which case the fallbacks above are used.
-	local realdir = love.filesystem.getRealDirectory(main_file)
-	if realdir then
-		identity = love.path.leaf(realdir)
+	-- loveu.toml is required for any loaded game (directory, .love, or fused).
+	if can_has_game then
+		love.project = love.filesystem.loadProjectManifest()
+
+		if love.project.engine_version ~= love._loveu_version then
+			error(string.format(
+				"loveu.toml engine_version '%s' does not match running loveu '%s'",
+				tostring(love.project.engine_version), tostring(love._loveu_version)
+			))
+		end
+
+		identity = love.project.name
+
+		local code_root = love.project.code_root
+		if code_root ~= "." then
+			love.filesystem.setRequirePath(code_root .. "/?.luau;" .. code_root .. "/?/init.luau")
+			if not custom_main_file then
+				main_file = code_root .. "/main.luau"
+			end
+		end
+	else
+		-- Try to use the archive containing main.luau as the identity name.
+		local realdir = love.filesystem.getRealDirectory(main_file)
+		if realdir then
+			identity = love.path.leaf(realdir)
+		end
 	end
 
 	identity = identity:gsub("^([%.]+)", "") -- strip leading "."'s
@@ -150,7 +172,12 @@ function love.boot()
 	-- before the save directory (the identity should be appended.)
 	pcall(love.filesystem.setIdentity, identity, true)
 
-	if can_has_game and not (love.filesystem.getInfo(main_file) or (not custom_main_file and love.filesystem.getInfo("conf.luau"))) then
+	local conf_file = "conf.luau"
+	if love.project and love.project.code_root ~= "." then
+		conf_file = love.project.code_root .. "/conf.luau"
+	end
+
+	if can_has_game and not (love.filesystem.getInfo(main_file) or (not custom_main_file and love.filesystem.getInfo(conf_file))) then
 		no_game_code = true
 	end
 
@@ -160,9 +187,9 @@ function love.boot()
 https://love2d.org
 
 usage:
-    love --version                  prints LOVE version and quits
+    love --version                  prints loveu and LÖVE versions and quits
     love --help                     prints this message and quits
-    love path/to/gamedir            runs the game from the given directory which contains a main.luau file
+    love path/to/gamedir            runs a game directory containing loveu.toml and main.luau
     love path/to/packagedgame.love  runs the packaged game from the provided .love file
     love path/to/file.luau          runs the game from the given .luau file
 ]]);
@@ -247,7 +274,11 @@ function love.init()
 
 	-- If config file exists, load it and allow it to update config table.
 	local confok, conferr
-	if (not love.conf) and love.filesystem and love.filesystem.getInfo("conf.luau") then
+	local conf_file = "conf.luau"
+	if love.project and love.project.code_root ~= "." then
+		conf_file = love.project.code_root .. "/conf.luau"
+	end
+	if (not love.conf) and love.filesystem and love.filesystem.getInfo(conf_file) then
 		confok, conferr = pcall(require, "conf")
 	end
 
@@ -257,6 +288,15 @@ function love.init()
 		confok, conferr = pcall(love.conf, c)
 		-- If love.conf errors, we'll trigger the error after loading modules so
 		-- the error message can be displayed in the window.
+	end
+
+	-- loveu.toml is the source of truth for identity / default title.
+	-- c.version stays the upstream LÖVE API compat field (love._version), not loveu's semver.
+	if love.project then
+		c.identity = love.project.name
+		if c.title == nil or c.title == "" or c.title == "Untitled" then
+			c.title = love.project.name
+		end
 	end
 
 	-- Console hack, part 2.
@@ -442,7 +482,13 @@ function love.init()
 		love.filesystem._setAndroidSaveExternal(c.externalstorage)
 		love.filesystem.setIdentity(c.identity or love.filesystem.getIdentity(), c.appendidentity)
 		if love.filesystem.getInfo(main_file) then
-			require(main_file:gsub("%.luau$", ""))
+			-- With code_root require paths (e.g. src/?.luau), always require "main"
+			-- rather than "src/main" to avoid double-prefixing.
+			if custom_main_file then
+				require(main_file:gsub("%.luau$", ""))
+			else
+				require("main")
+			end
 		end
 	end
 

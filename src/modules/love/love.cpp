@@ -286,6 +286,11 @@ const char *love_version()
 	return LOVE_VERSION_STRING;
 }
 
+const char *loveu_version()
+{
+	return LOVEU_VERSION_STRING;
+}
+
 const char *love_codename()
 {
 	return love::VERSION_CODENAME;
@@ -537,6 +542,7 @@ int luaopen_love(lua_State *L)
 	love::luax_insistglobal(L, "love");
 
 	// Set version information.
+	// love._version* = upstream LÖVE API this fork is based on.
 	lua_pushstring(L, love::VERSION);
 	lua_setfield(L, -2, "_version");
 
@@ -549,6 +555,17 @@ int luaopen_love(lua_State *L)
 
 	lua_pushstring(L, love::VERSION_CODENAME);
 	lua_setfield(L, -2, "_version_codename");
+
+	// love._loveu_version* = this fork's semver (loveu.toml engine_version).
+	lua_pushstring(L, love::LOVEU_VERSION);
+	lua_setfield(L, -2, "_loveu_version");
+
+	lua_pushnumber(L, love::LOVEU_VERSION_MAJOR);
+	lua_setfield(L, -2, "_loveu_version_major");
+	lua_pushnumber(L, love::LOVEU_VERSION_MINOR);
+	lua_setfield(L, -2, "_loveu_version_minor");
+	lua_pushnumber(L, love::LOVEU_VERSION_REV);
+	lua_setfield(L, -2, "_loveu_version_revision");
 
 #ifdef LOVE_ANDROID
 	lua_register(L, "print", w_print_sdl_log);

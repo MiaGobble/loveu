@@ -1,0 +1,4 @@
+name = "love-test"
+version = "0.0.0"
+engine_version = "0.1.0"
+code_root = "."

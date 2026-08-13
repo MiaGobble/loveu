@@ -316,6 +316,13 @@ public:
 	 **/
 	virtual std::string getExecutablePath() const;
 
+	/**
+	 * Project code_root from loveu.toml ( "." when scripts live at source root).
+	 * Used when rewriting relative require module names under a nested code root.
+	 **/
+	void setProjectCodeRoot(const std::string &root);
+	const std::string &getProjectCodeRoot() const;
+
 	STRINGMAP_CLASS_DECLARE(FileType);
 	STRINGMAP_CLASS_DECLARE(CommonPath);
 	STRINGMAP_CLASS_DECLARE(MountPermissions);
@@ -331,6 +338,8 @@ private:
 
 	// Should we save external or internal for Android
 	bool useExternal = false;
+
+	std::string projectCodeRoot = ".";
 
 }; // Filesystem
 
