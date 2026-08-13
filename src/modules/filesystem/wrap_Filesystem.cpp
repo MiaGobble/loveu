@@ -898,6 +898,79 @@ static std::string requireTomlString(const toml::table &table, const char *key, 
 	return *str;
 }
 
+static void pushTomlNode(lua_State *L, const toml::node &node)
+{
+	if (auto v = node.value<std::string>())
+	{
+		luax_pushstring(L, *v);
+		return;
+	}
+	if (auto v = node.value<bool>())
+	{
+		lua_pushboolean(L, *v);
+		return;
+	}
+	if (auto v = node.value<int64_t>())
+	{
+		lua_pushnumber(L, (lua_Number)*v);
+		return;
+	}
+	if (auto v = node.value<double>())
+	{
+		lua_pushnumber(L, (lua_Number)*v);
+		return;
+	}
+	if (auto arr = node.as_array())
+	{
+		lua_createtable(L, (int)arr->size(), 0);
+		int i = 1;
+		for (auto &&el : *arr)
+		{
+			pushTomlNode(L, el);
+			lua_rawseti(L, -2, i++);
+		}
+		return;
+	}
+	if (auto tbl = node.as_table())
+	{
+		lua_createtable(L, 0, (int)tbl->size());
+		for (auto &&[k, v] : *tbl)
+		{
+			pushTomlNode(L, v);
+			lua_setfield(L, -2, std::string(k.str()).c_str());
+		}
+		return;
+	}
+
+	lua_pushnil(L);
+}
+
+static void pushOptionalConfig(lua_State *L, const toml::table &table)
+{
+	static const char *keys[] = {
+		"console", "appendidentity", "externalstorage", "highdpi", "trackpadtouch",
+		"title", "window", "modules", "graphics", "audio", nullptr
+	};
+
+	lua_createtable(L, 0, 8);
+	int count = 0;
+	for (int i = 0; keys[i] != nullptr; i++)
+	{
+		auto node = table[keys[i]];
+		if (!node)
+			continue;
+		pushTomlNode(L, *node.node());
+		lua_setfield(L, -2, keys[i]);
+		count++;
+	}
+
+	if (count == 0)
+	{
+		lua_pop(L, 1);
+		lua_pushnil(L);
+	}
+}
+
 int w_loadProjectManifest(lua_State *L)
 {
 	const char *filename = "loveu.toml";
@@ -980,7 +1053,7 @@ int w_loadProjectManifest(lua_State *L)
 
 	inst->setProjectCodeRoot(codeRoot);
 
-	lua_createtable(L, 0, 4);
+	lua_createtable(L, 0, 5);
 	luax_pushstring(L, name);
 	lua_setfield(L, -2, "name");
 	luax_pushstring(L, version);
@@ -989,6 +1062,8 @@ int w_loadProjectManifest(lua_State *L)
 	lua_setfield(L, -2, "engine_version");
 	luax_pushstring(L, codeRoot);
 	lua_setfield(L, -2, "code_root");
+	pushOptionalConfig(L, table);
+	lua_setfield(L, -2, "config");
 	return 1;
 }
 

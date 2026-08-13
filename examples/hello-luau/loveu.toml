@@ -2,3 +2,7 @@ name = "hello-luau"
 version = "0.0.0"
 engine_version = "0.1.0"
 code_root = "."
+
+[window]
+width = 800
+height = 600

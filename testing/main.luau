@@ -1,3 +1,13 @@
+-- custom crash message here to catch anything that might occur with modules
+-- loading before we hit tests
+local function error_printer(msg, layer)
+  print((debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", "")))
+end
+function love.errorhandler(msg)
+  msg = tostring(msg)
+  error_printer(msg, 2)
+end
+
 -- load test objs
 require('classes.TestSuite')
 require('classes.TestModule')

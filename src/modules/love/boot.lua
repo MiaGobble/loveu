@@ -46,7 +46,7 @@ function love.boot()
 	-- This is absolutely needed.
 	require("love.filesystem")
 
-	-- Having love.system loaded before conf.luau is run can be useful for accessing love.system.getOS.
+	-- Having love.system loaded before loveu.toml config is applied can be useful for accessing love.system.getOS.
 	require("love.system")
 
 	-- nogame.lua returns _noGameRestartInfo when
@@ -168,16 +168,10 @@ function love.boot()
 	identity = identity:gsub("%.", "_") -- replace remaining "."'s with "_"
 	identity = #identity > 0 and identity or "lovegame"
 
-	-- When conf.luau is initially loaded, the main source should be checked
-	-- before the save directory (the identity should be appended.)
+	-- Identity is applied before main.luau is required (append to source, not save dir).
 	pcall(love.filesystem.setIdentity, identity, true)
 
-	local conf_file = "conf.luau"
-	if love.project and love.project.code_root ~= "." then
-		conf_file = love.project.code_root .. "/conf.luau"
-	end
-
-	if can_has_game and not (love.filesystem.getInfo(main_file) or (not custom_main_file and love.filesystem.getInfo(conf_file))) then
+	if can_has_game and not love.filesystem.getInfo(main_file) then
 		no_game_code = true
 	end
 
@@ -272,31 +266,36 @@ function love.init()
 		openedconsole = true
 	end
 
-	-- If config file exists, load it and allow it to update config table.
-	local confok, conferr
-	local conf_file = "conf.luau"
-	if love.project and love.project.code_root ~= "." then
-		conf_file = love.project.code_root .. "/conf.luau"
-	end
-	if (not love.conf) and love.filesystem and love.filesystem.getInfo(conf_file) then
-		confok, conferr = pcall(require, "conf")
+	local function mergeConfig(dst, src)
+		if type(src) ~= "table" then
+			return src
+		end
+		if type(dst) ~= "table" then
+			dst = {}
+		end
+		for k, v in pairs(src) do
+			if type(v) == "table" and type(dst[k]) == "table" then
+				mergeConfig(dst[k], v)
+			else
+				dst[k] = v
+			end
+		end
+		return dst
 	end
 
-	-- Yes, conf.luau might not exist, but there are other ways of making
-	-- love.conf appear, so we should check for it anyway.
-	if love.conf then
-		confok, conferr = pcall(love.conf, c)
-		-- If love.conf errors, we'll trigger the error after loading modules so
-		-- the error message can be displayed in the window.
-	end
-
-	-- loveu.toml is the source of truth for identity / default title.
-	-- c.version stays the upstream LÖVE API compat field (love._version), not loveu's semver.
+	-- Game runtime config comes from loveu.toml. love.conf is only used by
+	-- the built-in no-game screen.
+	local confok, conferr = true, nil
 	if love.project then
+		if type(love.project.config) == "table" then
+			mergeConfig(c, love.project.config)
+		end
 		c.identity = love.project.name
 		if c.title == nil or c.title == "" or c.title == "Untitled" then
 			c.title = love.project.name
 		end
+	elseif love.conf then
+		confok, conferr = pcall(love.conf, c)
 	end
 
 	-- Console hack, part 2.

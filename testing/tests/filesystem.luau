@@ -595,6 +595,10 @@ love.test.filesystem.loadProjectManifest = function(test)
     test:assertEquals('0.0.0', loaded.version, 'check reload version')
     test:assertEquals(love._loveu_version, loaded.engine_version, 'check reload engine_version')
     test:assertEquals('.', loaded.code_root, 'check reload code_root')
+    test:assertNotEquals(nil, loaded.config, 'check config table from loveu.toml')
+    test:assertEquals(true, loaded.config.console, 'check console from toml')
+    test:assertEquals(360, loaded.config.window.width, 'check window.width from toml')
+    test:assertEquals(240, loaded.config.window.height, 'check window.height from toml')
 
     -- Invalid overlay in the save directory shadows the source manifest.
     love.filesystem.write('loveu.toml', 'not valid toml {{{')

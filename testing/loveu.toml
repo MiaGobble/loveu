@@ -2,3 +2,12 @@ name = "love-test"
 version = "0.0.0"
 engine_version = "0.1.0"
 code_root = "."
+console = true
+
+[window]
+width = 360
+height = 240
+resizable = true
+depth = true
+stencil = true
+usedpiscale = false
