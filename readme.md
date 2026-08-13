@@ -86,17 +86,5 @@ Exposed at runtime as `love.project = { name, version, engine_version, code_root
 | `love._loveu_version` | loveu fork semver; pin in `loveu.toml` | `0.1.0` |
 | `love._version` | Upstream LÖVE API this build is based on | `12.0` |
 
-Bump `LOVEU_VERSION_*` in `src/common/version.h` when loveu changes behavior games depend on. Bump `LOVE_VERSION_*` when rebasing onto a new upstream LÖVE. `love --version` prints both.
-
-Example `main.luau`:
-
-```luau
-function love.draw()
-	love.graphics.print("Hello from Luau!", 100, 100)
-end
-```
-
-Luau sources live in `src/libraries/luau` when vendored. If that directory is missing, CMake fetches Luau via FetchContent at configure time.
-
 ## AI Notice
 This fork, at least so far, is completely done with AI. This means you can expect things to not be exceptionally implemented, or alternatively, not working the way it should.
