@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <cstring>
+#include <string_view>
 
 #include "libraries/tomlplusplus/toml.hpp"
 
@@ -921,7 +922,7 @@ int w_loadProjectManifest(lua_State *L)
 	toml::table table;
 	try
 	{
-		table = toml::parse(contents, filename);
+		table = toml::parse(std::string_view{contents}, std::string_view{filename});
 	}
 	catch (const toml::parse_error &e)
 	{
