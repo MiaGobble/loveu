@@ -568,12 +568,7 @@ end
 
 -- love.filesystem.loadProjectManifest / love.project
 love.test.filesystem.loadProjectManifest = function(test)
-  local backupToml = love.filesystem.getSource() .. '/loveu.toml.testbak'
-  local sourceToml = love.filesystem.getSource() .. '/loveu.toml'
-
   local function restoreProjectManifest()
-    -- If a previous attempt left the source renamed, put it back.
-    os.rename(backupToml, sourceToml) -- no-op if backup missing
     love.filesystem.remove('loveu.toml')
     love.filesystem.setRequirePath('?.luau;?/init.luau')
     package.loaded['loader'] = nil
@@ -612,9 +607,9 @@ name = "x"
 version = "1.0.0"
 code_root = "."
 ]])
-    local okMissing, errMissing = pcall(love.filesystem.loadProjectManifest)
-    test:assertFalse(okMissing, 'check missing engine_version fails')
-    test:assertTrue(tostring(errMissing):find("engine_version", 1, true) ~= nil, 'check missing field message')
+    local okMissingField, errMissingField = pcall(love.filesystem.loadProjectManifest)
+    test:assertFalse(okMissingField, 'check missing engine_version fails')
+    test:assertTrue(tostring(errMissingField):find("engine_version", 1, true) ~= nil, 'check missing field message')
 
     love.filesystem.write('loveu.toml', string.format([[
 name = "x"
@@ -673,15 +668,8 @@ code_root = "cr_src"
     love.filesystem.remove('cr_src/nested')
     love.filesystem.remove('cr_src')
 
-    -- Missing loveu.toml: temporarily rename the source manifest on disk.
-    love.filesystem.remove('loveu.toml')
-    local renamed = os.rename(sourceToml, backupToml)
-    test:assertTrue(renamed, 'check can rename source loveu.toml for missing test')
-    local okGone, errGone = pcall(love.filesystem.loadProjectManifest)
-    local restored = os.rename(backupToml, sourceToml)
-    test:assertTrue(restored, 'check source loveu.toml restored after missing test')
-    test:assertFalse(okGone, 'check missing loveu.toml fails')
-    test:assertTrue(tostring(errGone):find('missing loveu.toml', 1, true) ~= nil, 'check missing error message')
+    -- Missing-file boot failure is covered by testing/resources/project_format/missing_manifest
+    -- (Luau's os library has no rename/remove for temporarily hiding the source manifest).
   end)
 
   restoreProjectManifest()
