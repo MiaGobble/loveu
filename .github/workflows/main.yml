@@ -139,7 +139,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengl)
       run: |
-        7z a -tzip test-output-linux-opengl-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-opengl.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (opengl)
       uses: actions/upload-artifact@v4
       with:
@@ -162,7 +162,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Zip Test Output (opengles)
       run: |
-        7z a -tzip test-output-linux-opengles-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-opengles.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (opengles)
       uses: actions/upload-artifact@v4
       with:
@@ -184,7 +184,7 @@ jobs:
         path: love2d-${{ github.sha }}/testing/output/lovetest_all.md
     - name: Zip Test Output (vulkan)
       run: |
-        7z a -tzip test-output-linux-vulkan-${{ runner.arch }}.zip love2d-${{ github.sha }}/testing/output/
+        7z a -tzip test-output-linux-${{ runner.arch }}-vulkan.zip love2d-${{ github.sha }}/testing/output/
     - name: Artifact Test Output (vulkan)
       uses: actions/upload-artifact@v4
       with:
@@ -194,14 +194,18 @@ jobs:
       # should always stop xvfb and openbox even if other steps failed
       if: always()
       run: |
-        kill $XVFBPID
-        kill $OPENBOXPID
+        # Processes may already have exited (especially on ARM); don't fail the job for teardown.
+        if [ -n "${OPENBOXPID:-}" ]; then kill "$OPENBOXPID" 2>/dev/null || true; fi
+        if [ -n "${XVFBPID:-}" ]; then kill "$XVFBPID" 2>/dev/null || true; fi
     - name: Artifact
+      # Upload even if teardown failed; AppImage build success is independent of xvfb cleanup.
+      if: always() && hashFiles(format('love-{0}.AppImage', github.sha)) != ''
       uses: actions/upload-artifact@v4
       with:
         name: love-linux-${{ runner.arch }}.AppImage
         path: love-${{ github.sha }}.AppImage
     - name: Artifact Debug Symbols
+      if: always() && hashFiles(format('love-{0}.AppImage-debug.tar.gz', github.sha)) != ''
       uses: actions/upload-artifact@v4
       with:
         name: love-${{ runner.arch }}-AppImage-debug
