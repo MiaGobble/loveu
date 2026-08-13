@@ -949,13 +949,20 @@ static bool resolveRelativeRequire(lua_State *L, const char *name, std::string &
 		}
 	} while (ar.what != nullptr && ar.what[0] == 'C');
 
-	if (ar.source == nullptr || ar.source[0] != '@')
+	// love's luaL_loadbufferx strips a leading '@'/'=' before luau_load, so
+	// debug sources for files are bare paths (e.g. "foo/bar.luau"). Accept an
+	// optional '@' too. Reject '=' / '(' artificial buffer names.
+	if (ar.source == nullptr || ar.source[0] == '\0' || ar.source[0] == '=' || ar.source[0] == '(')
 	{
-		lua_pushstring(L, "relative require requires a file chunk (chunkname starting with @)");
+		lua_pushstring(L, "relative require requires a file chunk");
 		return false;
 	}
 
-	std::string source = ar.source + 1; // Strip leading '@'.
+	const char *path = ar.source;
+	if (path[0] == '@')
+		path++;
+
+	std::string source = path;
 	size_t slash = source.find_last_of('/');
 	std::string dir = (slash == std::string::npos) ? "" : source.substr(0, slash);
 	std::string joined = dir.empty() ? name : (dir + "/" + name);
