@@ -21,9 +21,7 @@
 #include "common/version.h"
 #include "common/runtime.h"
 #include "common/Variant.h"
-#include "common/Module.h"
 #include "modules/love/love.h"
-#include "modules/window/Window.h"
 
 #include <SDL3/SDL.h>
 
@@ -300,16 +298,24 @@ static DoneAction runlove(int argc, char **argv, int &retval, love::Variant &res
 	// has been observed to abort with STATUS_INVALID_PARAMETER (0xC000000D).
 	if (done != DONE_RESTART)
 	{
-		try
+		lua_getglobal(L, "love");
+		if (lua_istable(L, -1))
 		{
-			auto *win = love::Module::getInstance<love::window::Window>(love::Module::M_WINDOW);
-			if (win != nullptr)
-				win->close();
+			lua_getfield(L, -1, "window");
+			if (lua_istable(L, -1))
+			{
+				lua_getfield(L, -1, "close");
+				if (lua_isfunction(L, -1))
+				{
+					if (lua_pcall(L, 0, 0, 0) != LUA_OK)
+						lua_pop(L, 1);
+				}
+				else
+					lua_pop(L, 1);
+			}
+			lua_pop(L, 1);
 		}
-		catch (...)
-		{
-			// Best-effort; the process is exiting.
-		}
+		lua_pop(L, 1);
 	}
 	else
 		lua_close(L);

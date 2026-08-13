@@ -333,7 +333,23 @@ jobs:
         LDFLAGS: /DEBUG:FULL /OPT:REF /OPT:ICF
       run: cmake -Bbuild -Smegasource -T v145 -A ${{ matrix.platform }} --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb ${{ steps.vars.outputs.moredef }}
     - name: Install
+      id: package
       run: cmake --build build --target PACKAGE --config Release -j2
+    - name: Dump Install errors
+      if: failure() && steps.package.outcome == 'failure'
+      shell: powershell
+      run: |
+        $log = Get-ChildItem -Path build -Recurse -Filter '*.log' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5
+        $log | ForEach-Object { Write-Host "=== $($_.FullName) ==="; Get-Content $_.FullName -Tail 30 }
+        # MSBuild/clang style errors from the last build output aren't captured; re-run a focused build for annotations.
+        cmake --build build --target love --config Release -j1 2>&1 | Tee-Object -FilePath build-love-errors.txt | Out-Host
+        Get-Content build-love-errors.txt -Tail 80 | ForEach-Object {
+          $line = $_
+          if ($line.Length -gt 200) { $line = $line.Substring(0,200) }
+          if ($line -match 'error|Error|fatal') { Write-Host "::error::$line" }
+          else { Write-Host $line }
+        }
+
     - name: Copy LuaJIT lua51.pdb
       run: |
         copy /Y build\libs\LuaJIT\src\lua51.pdb pdb\Release\lua51.pdb
