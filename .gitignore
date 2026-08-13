@@ -41,6 +41,7 @@
 *.dylib
 /build-compat-test/
 /build-luau-test/
+/build-luau-tests-run/
 *.dmg*
 demos
 *.orig
