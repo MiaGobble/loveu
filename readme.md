@@ -13,7 +13,7 @@ I will be doing the following divergences in order:
 ### Foundation
 |Feature|Description|Status|
 |-------|-----------|------|
-|Relative requires|Make requiring relative to the current file path, not the root|Not implemented|
+|Relative requires|Make requiring relative to the current file path, not the root|Implemented|
 |Luau support|Usage of Luau instead of Lua|Implemented|
 |Project format|Structures the project identity from a `loveu.toml` manifest|Not implemented|
 |CLI tooling|Helpers to build to any platform, run, initialize, switch versions, and more|Not implemented|
@@ -52,6 +52,7 @@ loveu embeds [Luau](https://luau.org/) instead of LuaJIT / PUC Lua.
 - Game entry point must be **`main.luau`** (not `main.lua`).
 - Config file must be **`conf.luau`** when used.
 - `require` resolves `?.luau` and `?/init.luau` only.
+- Paths starting with `./` or `../` resolve relative to the requiring file (e.g. `require("../../lib/util")` from `scenes/level/main.luau` loads `lib/util.luau`). Bare names like `require("lib.util")` remain root-relative.
 - LuaJIT FFI and `jit.*` are not available; prefer `bit32` (also aliased as `bit`).
 - Engine-internal scripts still compile through Luau at load time.
 

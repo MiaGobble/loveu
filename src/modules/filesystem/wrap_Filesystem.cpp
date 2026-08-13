@@ -30,6 +30,7 @@
 #include "physfs/Filesystem.h"
 
 #include <stdio.h>
+#include <cstring>
 
 #ifdef LOVE_ANDROID
 #include "common/android.h"
@@ -885,11 +886,144 @@ static void replaceAll(std::string &str, const std::string &substr, const std::s
 		str.replace(locations[i], sublen, replacement);
 }
 
+// Relative requires use ./ or ../ prefixes and resolve against the caller's file.
+static bool isRelativeRequirePath(const char *name)
+{
+	return strncmp(name, "./", 2) == 0 || strncmp(name, "../", 3) == 0;
+}
+
+// Normalize a virtual path, returning false if it escapes the game root.
+static bool normalizeVirtualPath(const std::string &path, std::string &out)
+{
+	std::vector<std::string> parts;
+	std::string current;
+
+	for (size_t i = 0; i <= path.size(); i++)
+	{
+		char c = (i < path.size()) ? path[i] : '/';
+		if (c == '/' || c == '\\')
+		{
+			if (current.empty() || current == ".")
+			{
+				current.clear();
+				continue;
+			}
+			if (current == "..")
+			{
+				if (parts.empty())
+					return false;
+				parts.pop_back();
+				current.clear();
+				continue;
+			}
+			parts.push_back(current);
+			current.clear();
+		}
+		else
+			current += c;
+	}
+
+	out.clear();
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		if (i > 0)
+			out += '/';
+		out += parts[i];
+	}
+	return true;
+}
+
+// Resolve ./ and ../ requires to a root-relative dotted module name.
+// On failure, pushes an error string and returns false (no luaL_error; longjmp-safe).
+static bool resolveRelativeRequire(lua_State *L, const char *name, std::string &resolved)
+{
+	lua_Debug ar = {};
+	int level = 1;
+
+	do
+	{
+		if (!lua_getinfo(L, level++, "s", &ar))
+		{
+			lua_pushstring(L, "relative require is not supported in this context");
+			return false;
+		}
+	} while (ar.what != nullptr && ar.what[0] == 'C');
+
+	// love's luaL_loadbufferx strips a leading '@'/'=' before luau_load, so
+	// debug sources for files are bare paths (e.g. "foo/bar.luau"). Accept an
+	// optional '@' too. Reject '=' / '(' artificial buffer names.
+	if (ar.source == nullptr || ar.source[0] == '\0' || ar.source[0] == '=' || ar.source[0] == '(')
+	{
+		lua_pushstring(L, "relative require requires a file chunk");
+		return false;
+	}
+
+	const char *path = ar.source;
+	if (path[0] == '@')
+		path++;
+
+	std::string source = path;
+	size_t slash = source.find_last_of('/');
+	std::string dir = (slash == std::string::npos) ? "" : source.substr(0, slash);
+	std::string joined = dir.empty() ? name : (dir + "/" + name);
+
+	std::string normalized;
+	if (!normalizeVirtualPath(joined, normalized))
+	{
+		lua_pushfstring(L, "module '%s' not found: relative path escapes game root", name);
+		return false;
+	}
+
+	if (normalized.empty())
+	{
+		lua_pushfstring(L, "module '%s' not found: resolved to empty path", name);
+		return false;
+	}
+
+	for (char &c : normalized)
+	{
+		if (c == '/')
+			c = '.';
+	}
+
+	resolved = std::move(normalized);
+	return true;
+}
+
+static int w_relative_require(lua_State *L)
+{
+	lua_settop(L, 1);
+	const char *name = luaL_checkstring(L, 1);
+
+	if (isRelativeRequirePath(name))
+	{
+		bool ok = false;
+		{
+			std::string resolved;
+			ok = resolveRelativeRequire(L, name, resolved);
+			if (ok)
+				lua_pushstring(L, resolved.c_str());
+		}
+
+		if (!ok)
+			return lua_error(L);
+
+		lua_replace(L, 1);
+	}
+
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	lua_call(L, lua_gettop(L) - 1, LUA_MULTRET);
+	return lua_gettop(L);
+}
+
 int loader(lua_State *L)
 {
 	std::string modulename = luax_checkstring(L, 1);
 	bool hasSlash = modulename.find('/') != std::string::npos;
 
+	// Relative paths are rewritten by w_relative_require before reaching loaders.
+	// Keep slash deprecation for bare root-relative slash requires.
 	for (char &c : modulename)
 	{
 		if (c == '.')
@@ -1113,6 +1247,24 @@ extern "C" int luaopen_love_filesystem(lua_State *L)
 	// The love loaders should be tried after package.preload.
 	love::luax_register_searcher(L, loader, 2);
 	love::luax_register_searcher(L, extloader, 3);
+
+	// Wrap require once so ./ and ../ paths resolve relative to the calling file.
+	lua_getfield(L, LUA_REGISTRYINDEX, "love.filesystem.relative_require");
+	bool wrapped = lua_toboolean(L, -1) != 0;
+	lua_pop(L, 1);
+	if (!wrapped)
+	{
+		lua_getglobal(L, "require");
+		if (lua_isfunction(L, -1))
+		{
+			lua_pushcclosure(L, w_relative_require, 1);
+			lua_setglobal(L, "require");
+			lua_pushboolean(L, 1);
+			lua_setfield(L, LUA_REGISTRYINDEX, "love.filesystem.relative_require");
+		}
+		else
+			lua_pop(L, 1);
+	}
 
 	WrappedModule w;
 	w.module = instance;

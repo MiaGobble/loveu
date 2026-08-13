@@ -524,6 +524,48 @@ love.test.filesystem.setRequirePath = function(test)
 end
 
 
+-- Relative require (./ and ../ resolve against the calling file)
+love.test.filesystem.relativeRequire = function(test)
+  love.filesystem.createDirectory('relreq/nested')
+  love.filesystem.write('relreq/target.luau', 'return { ok = true, id = "target" }')
+  love.filesystem.write('relreq/nested/from_nested.luau', [[
+return require("../target")
+]])
+  love.filesystem.write('relreq/loader.luau', [[
+local a = require("./nested/from_nested")
+local b = require("./target")
+-- Bare dotted names stay root-relative even from a nested file.
+local c = require("relreq.target")
+return { a = a, b = b, c = c, same = a == b and b == c }
+]])
+  love.filesystem.write('relreq/escape.luau', [[
+return require("../../../../outside")
+]])
+
+  local result = require('relreq.loader')
+  test:assertEquals(true, result.a.ok, 'check nested relative require')
+  test:assertEquals('target', result.b.id, 'check sibling relative require')
+  test:assertEquals('target', result.c.id, 'check bare root-relative require from nested file')
+  test:assertEquals(true, result.same, 'check relative and bare paths share package.loaded cache')
+
+  local ok, err = pcall(require, 'relreq.escape')
+  test:assertFalse(ok, 'check escaping game root fails')
+  test:assertNotEquals(nil, err, 'check escape error message present')
+  test:assertTrue(tostring(err):find('escapes game root', 1, true) ~= nil, 'check escape error mentions game root')
+
+  package.loaded['relreq.loader'] = nil
+  package.loaded['relreq.nested.from_nested'] = nil
+  package.loaded['relreq.target'] = nil
+  package.loaded['relreq.escape'] = nil
+  love.filesystem.remove('relreq/loader.luau')
+  love.filesystem.remove('relreq/escape.luau')
+  love.filesystem.remove('relreq/nested/from_nested.luau')
+  love.filesystem.remove('relreq/target.luau')
+  love.filesystem.remove('relreq/nested')
+  love.filesystem.remove('relreq')
+end
+
+
 -- love.filesystem.setSource
 love.test.filesystem.setSource = function(test)
   test:skipTest('used internally')
