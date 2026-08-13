@@ -50,8 +50,7 @@ I will be doing the following divergences in order:
 loveu embeds [Luau](https://luau.org/) instead of LuaJIT / PUC Lua.
 
 - Game entry point must be **`main.luau`** (not `main.lua`).
-- Config file must be **`conf.luau`** when used.
-- Every game must include a root **`loveu.toml`** project manifest (missing file is a boot error).
+- Every game must include a root **`loveu.toml`** project manifest (missing file is a boot error). Window, modules, and other runtime settings live there — there is no `conf.luau`.
 - `require` resolves `?.luau` and `?/init.luau` only (under `code_root` when set).
 - Paths starting with `./` or `../` resolve relative to the requiring file (e.g. `require("../../lib/util")` from `scenes/level/main.luau` loads `lib/util.luau`). Bare names like `require("lib.util")` remain root-relative within `code_root`.
 - LuaJIT FFI and `jit.*` are not available; prefer `bit32` (also aliased as `bit`).
@@ -66,6 +65,16 @@ name = "mygame"
 version = "0.1.0"
 engine_version = "0.1.0"
 code_root = "src"
+console = false
+
+[window]
+width = 800
+height = 600
+resizable = false
+
+[modules]
+audio = true
+physics = true
 ```
 
 | Field | Meaning |
@@ -74,10 +83,14 @@ code_root = "src"
 | `version` | Game version (`love.project.version`) |
 | `engine_version` | Must exactly match `love._loveu_version` or boot fails |
 | `code_root` | Scripts directory relative to the manifest (use `"."` when `main.luau` is beside the toml) |
+| `console` | Windows console (optional) |
+| `[window]` | Window mode (`width`, `height`, `fullscreen`, `vsync`, …) |
+| `[modules]` | Enable/disable engine modules |
+| `[graphics]` / `[audio]` | Renderer / audio runtime options |
 
-`conf.luau` still configures window/modules/runtime options. Identity comes from `loveu.toml`, not `t.identity`. Upstream LÖVE API compat (`love.conf` `t.version`, `love.getVersion`) still uses `love._version` (currently `12.0`).
+Identity and runtime config both come from `loveu.toml`. Upstream LÖVE API compat (`love.getVersion`) still uses `love._version` (currently `12.0`).
 
-Exposed at runtime as `love.project = { name, version, engine_version, code_root }`.
+Exposed at runtime as `love.project = { name, version, engine_version, code_root, config }`.
 
 ### Versioning
 
