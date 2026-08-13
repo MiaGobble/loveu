@@ -1,0 +1,220 @@
+name: release
+
+on:
+  workflow_run:
+    workflows: ["continuous-integration"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: loveu-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Read LOVEU_VERSION_STRING
+        id: ver
+        run: |
+          VER=$(sed -n 's/.*#define LOVEU_VERSION_STRING "\([^"]*\)".*/\1/p' src/common/version.h | head -n1)
+          if [ -z "$VER" ]; then
+            echo "Could not parse LOVEU_VERSION_STRING" >&2
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if tag exists
+        id: skip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ steps.ver.outputs.tag }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag ${{ steps.ver.outputs.tag }} already exists; nothing to do."
+          elif gh release view "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.ver.outputs.tag }} already exists; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Go
+        if: steps.skip.outputs.exists != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: cli/go.sum
+
+      - name: Download CI engine artifacts
+        if: steps.skip.outputs.exists != 'true' && github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: engine-artifacts
+
+      - name: Normalize engine packs
+        if: steps.skip.outputs.exists != 'true'
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p dist
+          find engine-artifacts -type f \( -name '*.zip' -o -name '*.AppImage' -o -name '*.apk' \) 2>/dev/null | sort || true
+          WIN=$(find engine-artifacts -type f -name 'love-*.zip' 2>/dev/null | head -n1 || true)
+          if [ -n "$WIN" ]; then cp "$WIN" "dist/loveu-engine-${VER}-windows-x86_64.zip"; fi
+          MAC=$(find engine-artifacts -type f -name 'love-macos.zip' 2>/dev/null | head -n1 || true)
+          if [ -z "$MAC" ]; then MAC=$(find engine-artifacts -type f -path '*macos*' -name '*.zip' 2>/dev/null | head -n1 || true); fi
+          if [ -n "$MAC" ]; then cp "$MAC" "dist/loveu-engine-${VER}-macos.zip"; fi
+          for plat in linux-x86_64 linux-aarch64; do
+            case "$plat" in
+              linux-x86_64) needle=X64 ;;
+              linux-aarch64) needle=ARM64 ;;
+            esac
+            IMG=$(find engine-artifacts -type f \( -name "*${needle}*.AppImage" -o -name "love-linux-${needle}.AppImage" \) 2>/dev/null | head -n1 || true)
+            if [ -n "$IMG" ]; then cp "$IMG" "dist/loveu-engine-${VER}-${plat}.AppImage"; fi
+          done
+          APK=$(find engine-artifacts -type f -name 'love-android*.apk' 2>/dev/null | head -n1 || true)
+          if [ -n "$APK" ]; then cp "$APK" "dist/loveu-engine-${VER}-android.apk"; fi
+          ls -la dist || true
+
+      - name: Build CLI binaries
+        if: steps.skip.outputs.exists != 'true'
+        working-directory: cli
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p ../dist
+          go mod download
+          build() {
+            local goos=$1 goarch=$2 out=$3
+            GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 go build -ldflags "-s -w" -o "$out" ./cmd/loveu
+          }
+          build windows amd64 ../dist/loveu-${VER}-windows-amd64.exe
+          build darwin amd64 ../dist/loveu-${VER}-darwin-amd64
+          build darwin arm64 ../dist/loveu-${VER}-darwin-arm64
+          build linux amd64 ../dist/loveu-${VER}-linux-amd64
+          build linux arm64 ../dist/loveu-${VER}-linux-arm64
+          (cd ../dist && zip -9 "loveu-${VER}-windows-amd64.zip" "loveu-${VER}-windows-amd64.exe")
+          tar -C ../dist -czf "../dist/loveu-${VER}-darwin-amd64.tar.gz" "loveu-${VER}-darwin-amd64"
+          tar -C ../dist -czf "../dist/loveu-${VER}-darwin-arm64.tar.gz" "loveu-${VER}-darwin-arm64"
+          tar -C ../dist -czf "../dist/loveu-${VER}-linux-amd64.tar.gz" "loveu-${VER}-linux-amd64"
+          tar -C ../dist -czf "../dist/loveu-${VER}-linux-arm64.tar.gz" "loveu-${VER}-linux-arm64"
+
+      - name: Linux .deb installers
+        if: steps.skip.outputs.exists != 'true'
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          curl -sL https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm_2.41.1_Linux_x86_64.tar.gz | tar -xz nfpm
+          for arch in amd64 arm64; do
+            VERSION="$VER" ARCH="$arch" BINARY="dist/loveu-${VER}-linux-${arch}" \
+              ./nfpm pkg --config cli/packaging/nfpm.yaml --target "dist/loveu-${VER}-linux-${arch}.deb" --packager deb
+          done
+
+      - name: Windows setup.exe (NSIS)
+        if: steps.skip.outputs.exists != 'true'
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nsis
+          makensis \
+            -DVERSION="$VER" \
+            -DOUTFILE="dist/loveu-${VER}-windows-amd64-setup.exe" \
+            -DSOURCE="dist/loveu-${VER}-windows-amd64.exe" \
+            cli/packaging/nsis/loveu.nsi
+
+      - name: SHA256SUMS
+        if: steps.skip.outputs.exists != 'true'
+        working-directory: dist
+        run: |
+          find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create tag and GitHub Release
+        id: publish
+        if: steps.skip.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.ver.outputs.tag }}
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "loveu $VER"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "loveu $VER" \
+            --notes "$(cat <<EOF
+          Automated release for loveu ${VER}.
+
+          ## CLI installers
+          - Windows: \`loveu-${VER}-windows-amd64-setup.exe\`
+          - Linux: \`loveu-${VER}-linux-amd64.deb\` / \`loveu-${VER}-linux-arm64.deb\`
+          - macOS: \`loveu-${VER}-macos.pkg\` (uploaded by follow-up job)
+          - Portable archives also attached.
+
+          ## Engine packs
+          Use \`loveu version install\` or download \`loveu-engine-*\` assets.
+          EOF
+          )" \
+            dist/*
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  macos-pkg:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Version
+        id: ver
+        run: |
+          echo "version=${{ needs.release.outputs.version }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ needs.release.outputs.tag }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: cli/go.sum
+      - name: Build and upload .pkg
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          TAG: ${{ needs.release.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd cli
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o ../loveu-darwin ./cmd/loveu
+          cd ..
+          chmod +x cli/packaging/macos/pkgbuild.sh
+          VERSION="$VER" BINARY=./loveu-darwin OUT="loveu-${VER}-macos.pkg" bash cli/packaging/macos/pkgbuild.sh
+          gh release upload "$TAG" "loveu-${VER}-macos.pkg" --clobber
+          SUM=$(shasum -a 256 "loveu-${VER}-macos.pkg")
+          if gh release download "$TAG" -p SHA256SUMS.txt -O SHA256SUMS.txt; then
+            echo "$SUM" >> SHA256SUMS.txt
+            gh release upload "$TAG" SHA256SUMS.txt --clobber
+          fi

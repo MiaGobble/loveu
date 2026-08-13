@@ -11,7 +11,15 @@ Current versions:
 
 ## What you need
 
-A loveu build (`love` / `lovec`). There are no official binaries yet — see [Building from source](/guide/building). CLI helpers (`loveu init`, packaging, version switching) are not implemented yet.
+The **`loveu` CLI** is the usual front door (see [CLI](/guide/cli)). Install a release binary, then:
+
+```
+loveu init mygame
+cd mygame
+loveu run
+```
+
+`loveu run` downloads the engine pinned by `engine_version`. You can still call `love` / `lovec` directly if you have a runtime:
 
 ```
 love --version
@@ -23,6 +31,7 @@ prints both versions, for example:
 loveu 0.1.0 (LÖVE 12.0 "Bestest Friend")
 ```
 
+Building the engine from source is covered in [Building from source](/guide/building).
 ## Minimal game
 
 A game directory must contain `loveu.toml` at the **project root** and `main.luau` (at the root, or under `code_root`).
@@ -51,6 +60,12 @@ end
 Run it:
 
 ```
+loveu run
+```
+
+or with a runtime directly:
+
+```
 love path/to/gamedir
 ```
 
@@ -77,6 +92,7 @@ code_root = "src"
 
 ## Next
 
+- [CLI](/guide/cli)
 - [Divergences from LÖVE](/guide/divergences) — checklist of what is different
 - [Building from source](/guide/building)
 - [Luau scripting](/guide/luau)

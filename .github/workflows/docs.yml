@@ -7,12 +7,6 @@ on:
       - package.json
       - package-lock.json
       - .github/workflows/docs.yml
-  pull_request:
-    paths:
-      - docs/**
-      - package.json
-      - package-lock.json
-      - .github/workflows/docs.yml
   workflow_dispatch:
 
 permissions:

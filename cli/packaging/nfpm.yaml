@@ -1,0 +1,18 @@
+# nfpm config for loveu CLI .deb packages.
+# Usage: VERSION=0.1.0 ARCH=amd64 BINARY=./loveu nfpm pkg -f nfpm.yaml -p deb
+name: loveu
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: devel
+priority: optional
+maintainer: loveu <https://github.com/MiaGobble/loveu>
+description: |
+  loveu CLI — develop and package loveu (LÖVE+Luau) games.
+homepage: https://github.com/MiaGobble/loveu
+license: zlib
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/loveu
+    file_info:
+      mode: 0755
