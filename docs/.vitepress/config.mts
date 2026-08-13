@@ -30,6 +30,7 @@ export default defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting started', link: '/guide/getting-started' },
+            { text: 'CLI', link: '/guide/cli' },
             { text: 'Building from source', link: '/guide/building' },
             { text: 'Divergences from LÖVE', link: '/guide/divergences' },
             { text: 'Luau scripting', link: '/guide/luau' },
