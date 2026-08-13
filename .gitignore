@@ -80,3 +80,7 @@ stamp-h1
 /testing/output/actual/*.png
 /testing/output/difference/*.png
 /examples/
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/.vitepress/.temp/

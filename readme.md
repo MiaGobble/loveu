@@ -3,6 +3,8 @@
 
 loveu is a fork of LÖVE to support different things that I want out of the engine.
 
+**Docs:** [VitePress site](https://miagobble.github.io/loveu/) covers fork divergences (`npm run docs:dev` locally). The [LÖVE wiki](https://love2d.org/wiki/Main_Page) is still the reference for the rest of the API.
+
 ## Roadmap
 I will be doing the following divergences in order:
 * Foundation
@@ -18,7 +20,7 @@ I will be doing the following divergences in order:
 |Project format|Structures the project identity from a `loveu.toml` manifest|Implemented|
 |CLI tooling|Helpers to build to any platform, run, initialize, switch versions, and more|Not implemented|
 |`love` type definitions|Fully featured typechecking for `love`|Not implemented|
-|Documentation|Documentation of this fork to note divergences, with a link back to the Love2D documentation|Not implemented|
+|Documentation|VitePress docs for fork divergences, linking back to the LÖVE wiki|Implemented|
 
 ### Development Features
 |Feature|Description|Status|
@@ -98,6 +100,17 @@ Exposed at runtime as `love.project = { name, version, engine_version, code_root
 |------------|---------|---------|
 | `love._loveu_version` | loveu fork semver; pin in `loveu.toml` | `0.1.0` |
 | `love._version` | Upstream LÖVE API this build is based on | `12.0` |
+
+## Docs
+
+Published at [miagobble.github.io/loveu](https://miagobble.github.io/loveu/). Enable **Settings → Pages → GitHub Actions** once so the `docs` workflow can deploy.
+
+```
+npm install
+npm run docs:dev
+```
+
+Build with `npm run docs:build`. Sources live in `docs/`.
 
 ## AI Notice
 This fork, at least so far, is completely done with AI. This means you can expect things to not be exceptionally implemented, or alternatively, not working the way it should.
