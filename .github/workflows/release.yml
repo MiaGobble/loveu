@@ -81,22 +81,54 @@ jobs:
         run: |
           mkdir -p dist
           find engine-artifacts -type f \( -name '*.zip' -o -name '*.AppImage' -o -name '*.apk' \) 2>/dev/null | sort || true
-          WIN=$(find engine-artifacts -type f -name 'love-*.zip' 2>/dev/null | head -n1 || true)
-          if [ -n "$WIN" ]; then cp "$WIN" "dist/loveu-engine-${VER}-windows-x86_64.zip"; fi
+
+          # CI uploads nest files under artifact-name directories, e.g.
+          #   love-linux-X64.AppImage/love-<sha>.AppImage
+          #   love-windows-x64/love-12.0-win64.zip
+          # Match by directory/path, not only basename.
+          WIN64=$(find engine-artifacts -type f \( -path '*/love-windows-x64/*' -o -name '*win64*.zip' \) 2>/dev/null | head -n1 || true)
+          if [ -n "$WIN64" ]; then cp "$WIN64" "dist/loveu-engine-${VER}-windows-x86_64.zip"; fi
+          WINARM=$(find engine-artifacts -type f \( -path '*/love-windows-arm64/*' -o -name '*woa64*.zip' \) 2>/dev/null | head -n1 || true)
+          if [ -n "$WINARM" ]; then cp "$WINARM" "dist/loveu-engine-${VER}-windows-arm64.zip"; fi
+
           MAC=$(find engine-artifacts -type f -name 'love-macos.zip' 2>/dev/null | head -n1 || true)
           if [ -z "$MAC" ]; then MAC=$(find engine-artifacts -type f -path '*macos*' -name '*.zip' 2>/dev/null | head -n1 || true); fi
           if [ -n "$MAC" ]; then cp "$MAC" "dist/loveu-engine-${VER}-macos.zip"; fi
+
           for plat in linux-x86_64 linux-aarch64; do
             case "$plat" in
               linux-x86_64) needle=X64 ;;
               linux-aarch64) needle=ARM64 ;;
             esac
-            IMG=$(find engine-artifacts -type f \( -name "*${needle}*.AppImage" -o -name "love-linux-${needle}.AppImage" \) 2>/dev/null | head -n1 || true)
+            IMG=$(find engine-artifacts -type f -path "*/love-linux-${needle}.AppImage/*" -name '*.AppImage' 2>/dev/null | head -n1 || true)
+            if [ -z "$IMG" ]; then
+              IMG=$(find engine-artifacts -type f \( -name "*${needle}*.AppImage" -o -name "love-linux-${needle}.AppImage" \) 2>/dev/null | head -n1 || true)
+            fi
             if [ -n "$IMG" ]; then cp "$IMG" "dist/loveu-engine-${VER}-${plat}.AppImage"; fi
           done
-          APK=$(find engine-artifacts -type f -name 'love-android*.apk' 2>/dev/null | head -n1 || true)
+
+          # Prefer the unsigned release APK artifact over debug.
+          APK=$(find engine-artifacts -type f -path '*/love-android.apk/*' -name '*.apk' 2>/dev/null | head -n1 || true)
+          if [ -z "$APK" ]; then
+            APK=$(find engine-artifacts -type f -name 'love-android*.apk' 2>/dev/null | head -n1 || true)
+          fi
           if [ -n "$APK" ]; then cp "$APK" "dist/loveu-engine-${VER}-android.apk"; fi
+
+          echo "Normalized dist/:"
           ls -la dist || true
+          # Fail early if CLI packaging would have nothing useful; engine packs are best-effort
+          # but warn loudly when expected platforms are missing.
+          for expected in \
+            "loveu-engine-${VER}-windows-x86_64.zip" \
+            "loveu-engine-${VER}-macos.zip" \
+            "loveu-engine-${VER}-linux-x86_64.AppImage" \
+            "loveu-engine-${VER}-linux-aarch64.AppImage" \
+            "loveu-engine-${VER}-android.apk"
+          do
+            if [ ! -f "dist/$expected" ]; then
+              echo "::warning::Missing engine pack: $expected"
+            fi
+          done
 
       - name: Build CLI binaries
         if: steps.skip.outputs.exists != 'true'
@@ -128,7 +160,13 @@ jobs:
         run: |
           curl -sL https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm_2.41.1_Linux_x86_64.tar.gz | tar -xz nfpm
           for arch in amd64 arm64; do
-            VERSION="$VER" ARCH="$arch" BINARY="dist/loveu-${VER}-linux-${arch}" \
+            BINARY="dist/loveu-${VER}-linux-${arch}"
+            if [ ! -f "$BINARY" ]; then
+              echo "Missing CLI binary for .deb: $BINARY" >&2
+              ls -la dist || true
+              exit 1
+            fi
+            VERSION="$VER" ARCH="$arch" BINARY="$BINARY" \
               ./nfpm pkg --config cli/packaging/nfpm.yaml --target "dist/loveu-${VER}-linux-${arch}.deb" --packager deb
           done
 
