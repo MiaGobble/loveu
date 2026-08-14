@@ -11,7 +11,7 @@ There is **no `conf.luau`**. Window, modules, and the other old `love.conf` fiel
 ```toml
 name = "mygame"
 version = "0.1.0"
-engine_version = "0.1.0"
+engine_version = "0.1.1"
 code_root = "src"
 ```
 
@@ -90,7 +90,7 @@ All default to `true`: `data`, `event`, `keyboard`, `mouse`, `timer`, `joystick`
 ```toml
 name = "mygame"
 version = "0.1.0"
-engine_version = "0.1.0"
+engine_version = "0.1.1"
 code_root = "src"
 console = false
 

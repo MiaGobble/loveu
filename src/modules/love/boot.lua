@@ -283,6 +283,13 @@ function love.init()
 		return dst
 	end
 
+	local function confNumber(value, default)
+		if type(value) == "number" then
+			return value
+		end
+		return default
+	end
+
 	-- Game runtime config comes from loveu.toml. love.conf is only used by
 	-- the built-in no-game screen.
 	local confok, conferr = true, nil
@@ -436,27 +443,29 @@ function love.init()
 	end
 
 	-- Setup window here.
-	if c.window and c.modules.window then
+	if type(c.window) == "table" and c.modules.window then
 		if c.window.icon then
 			assert(love.image, "If an icon is set in love.conf, love.image must be loaded.")
 			love.window.setIcon(love.image.newImageData(c.window.icon))
 		end
 
 		love.window.setTitle(c.window.title or c.title)
-		assert(love.window.setMode(c.window.width, c.window.height,
+		assert(love.window.setMode(
+			confNumber(c.window.width, 800),
+			confNumber(c.window.height, 600),
 		{
 			fullscreen = c.window.fullscreen,
 			fullscreentype = c.window.fullscreentype,
 			vsync = c.window.vsync,
-			msaa = c.window.msaa,
+			msaa = confNumber(c.window.msaa, 0),
 			stencil = c.window.stencil,
 			depth = c.window.depth,
 			resizable = c.window.resizable,
-			minwidth = c.window.minwidth,
-			minheight = c.window.minheight,
+			minwidth = confNumber(c.window.minwidth, 1),
+			minheight = confNumber(c.window.minheight, 1),
 			borderless = c.window.borderless,
 			centered = c.window.centered,
-			displayindex = c.window.displayindex,
+			displayindex = confNumber(c.window.displayindex, 1),
 			display = c.window.display, -- deprecated
 			highdpi = c.window.highdpi, -- deprecated
 			usedpiscale = c.window.usedpiscale,

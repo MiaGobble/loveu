@@ -6,7 +6,7 @@ Current versions:
 
 | Identifier | Meaning | Value |
 |------------|---------|-------|
-| `love._loveu_version` | loveu fork | `0.1.0` |
+| `love._loveu_version` | loveu fork | `0.1.1` |
 | `love._version` | Upstream LÖVE API | `12.0` |
 
 ## What you need
@@ -28,7 +28,7 @@ love --version
 prints both versions, for example:
 
 ```
-loveu 0.1.0 (LÖVE 12.0 "Bestest Friend")
+loveu 0.1.1 (LÖVE 12.0 "Bestest Friend")
 ```
 
 Building the engine from source is covered in [Building from source](/guide/building).
@@ -41,7 +41,7 @@ A game directory must contain `loveu.toml` at the **project root** and `main.lua
 ```toml
 name = "hello"
 version = "0.0.1"
-engine_version = "0.1.0"
+engine_version = "0.1.1"
 code_root = "."
 
 [window]
@@ -84,7 +84,7 @@ mygame/
 ```toml
 name = "mygame"
 version = "0.1.0"
-engine_version = "0.1.0"
+engine_version = "0.1.1"
 code_root = "src"
 ```
 

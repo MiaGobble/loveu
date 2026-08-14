@@ -6,7 +6,7 @@ Set on the `love` table when the module loads.
 
 | Field | Type | Current |
 |-------|------|---------|
-| `love._loveu_version` | string | `"0.1.0"` |
+| `love._loveu_version` | string | `"0.1.1"` |
 | `love._loveu_version_major` | number | `0` |
 | `love._loveu_version_minor` | number | `1` |
 | `love._loveu_version_revision` | number | `0` |
@@ -30,4 +30,4 @@ Same as [love.getVersion](https://love2d.org/wiki/love.getVersion) / [Config Fil
 local major, minor, revision, codename = love.getVersion()
 ```
 
-`love --version` prints both: `loveu 0.1.0 (LÖVE 12.0 "Bestest Friend")`.
+`love --version` prints both: `loveu 0.1.1 (LÖVE 12.0 "Bestest Friend")`.

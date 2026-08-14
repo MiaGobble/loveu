@@ -35,10 +35,10 @@ static const char *VERSION_CODENAME = "Bestest Friend";
 
 // loveu fork semver — loveu.toml engine_version must match this exactly.
 // Bump when loveu ships breaking/behavioral changes; bump LOVE_* when rebasing upstream.
-#define LOVEU_VERSION_STRING "0.1.0"
+#define LOVEU_VERSION_STRING "0.1.1"
 static const int LOVEU_VERSION_MAJOR = 0;
 static const int LOVEU_VERSION_MINOR = 1;
-static const int LOVEU_VERSION_REV = 0;
+static const int LOVEU_VERSION_REV = 1;
 static const char *LOVEU_VERSION = LOVEU_VERSION_STRING;
 
 } // love

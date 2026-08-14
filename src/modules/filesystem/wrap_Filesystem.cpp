@@ -900,27 +900,27 @@ static std::string requireTomlString(const toml::table &table, const char *key, 
 
 static void pushTomlNode(lua_State *L, const toml::node &node)
 {
-	// Use value_exact / type checks so integers are not coerced to bool.
-	// toml::node::value<bool>() accepts integers (nonzero → true), which
-	// previously turned window.width/height into booleans and broke setMode.
-	if (auto v = node.value_exact<std::string>())
+	// Dispatch on the node's actual TOML type. value<bool>() (and even some
+	// optional<bool> checks) can treat nonzero integers as true, which used to
+	// turn window.width/height into booleans and crash love.window.setMode.
+	if (auto str = node.as_string())
 	{
-		luax_pushstring(L, *v);
+		luax_pushstring(L, str->get());
 		return;
 	}
-	if (auto v = node.value_exact<bool>())
+	if (auto boolean = node.as_boolean())
 	{
-		lua_pushboolean(L, *v);
+		lua_pushboolean(L, boolean->get());
 		return;
 	}
-	if (auto v = node.value_exact<int64_t>())
+	if (auto integer = node.as_integer())
 	{
-		lua_pushnumber(L, (lua_Number)*v);
+		lua_pushnumber(L, (lua_Number)integer->get());
 		return;
 	}
-	if (auto v = node.value_exact<double>())
+	if (auto floating = node.as_floating_point())
 	{
-		lua_pushnumber(L, (lua_Number)*v);
+		lua_pushnumber(L, (lua_Number)floating->get());
 		return;
 	}
 	if (auto arr = node.as_array())

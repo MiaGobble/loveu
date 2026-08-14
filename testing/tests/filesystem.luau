@@ -597,8 +597,34 @@ love.test.filesystem.loadProjectManifest = function(test)
     test:assertEquals('.', loaded.code_root, 'check reload code_root')
     test:assertNotEquals(nil, loaded.config, 'check config table from loveu.toml')
     test:assertEquals(true, loaded.config.console, 'check console from toml')
+    test:assertEquals('number', type(loaded.config.window.width), 'check window.width is a number (not boolean)')
     test:assertEquals(360, loaded.config.window.width, 'check window.width from toml')
+    test:assertEquals('number', type(loaded.config.window.height), 'check window.height is a number (not boolean)')
     test:assertEquals(240, loaded.config.window.height, 'check window.height from toml')
+
+    -- Template-shaped [window] integers must stay numbers (setMode rejects booleans).
+    love.filesystem.write('loveu.toml', string.format([[
+name = "template-dims"
+version = "0.0.1"
+engine_version = "%s"
+code_root = "src"
+
+[window]
+width = 800
+height = 600
+vsync = 1
+msaa = 0
+]], love._loveu_version))
+    local dims = love.filesystem.loadProjectManifest()
+    test:assertEquals('number', type(dims.config.window.width), 'check template width type')
+    test:assertEquals(800, dims.config.window.width, 'check template width value')
+    test:assertEquals('number', type(dims.config.window.height), 'check template height type')
+    test:assertEquals(600, dims.config.window.height, 'check template height value')
+    test:assertEquals('number', type(dims.config.window.vsync), 'check vsync integer stays number')
+    test:assertEquals(1, dims.config.window.vsync, 'check vsync value')
+    test:assertEquals('number', type(dims.config.window.msaa), 'check msaa 0 stays number')
+    test:assertEquals(0, dims.config.window.msaa, 'check msaa value')
+    love.filesystem.remove('loveu.toml')
 
     -- Invalid overlay in the save directory shadows the source manifest.
     love.filesystem.write('loveu.toml', 'not valid toml {{{')
