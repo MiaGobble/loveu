@@ -900,22 +900,25 @@ static std::string requireTomlString(const toml::table &table, const char *key, 
 
 static void pushTomlNode(lua_State *L, const toml::node &node)
 {
-	if (auto v = node.value<std::string>())
+	// Use value_exact / type checks so integers are not coerced to bool.
+	// toml::node::value<bool>() accepts integers (nonzero → true), which
+	// previously turned window.width/height into booleans and broke setMode.
+	if (auto v = node.value_exact<std::string>())
 	{
 		luax_pushstring(L, *v);
 		return;
 	}
-	if (auto v = node.value<bool>())
+	if (auto v = node.value_exact<bool>())
 	{
 		lua_pushboolean(L, *v);
 		return;
 	}
-	if (auto v = node.value<int64_t>())
+	if (auto v = node.value_exact<int64_t>())
 	{
 		lua_pushnumber(L, (lua_Number)*v);
 		return;
 	}
-	if (auto v = node.value<double>())
+	if (auto v = node.value_exact<double>())
 	{
 		lua_pushnumber(L, (lua_Number)*v);
 		return;

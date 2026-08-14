@@ -38,6 +38,7 @@ jobs:
 
   Linux:
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -160,6 +161,7 @@ jobs:
         echo "OPENBOXPID=$!" >> $GITHUB_ENV
     # linux opengl tests
     - name: Run Test Suite (opengl)
+      timeout-minutes: 15
       run: |
         chmod a+x love-${{ github.sha }}.AppImage
         ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.luau --all --isRunner --renderers opengl
@@ -181,6 +183,7 @@ jobs:
         path: test-output-linux-${{ runner.arch }}-opengl.zip
     # linux opengles tests
     - name: Run Test Suite (opengles)
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
@@ -204,6 +207,7 @@ jobs:
         path: test-output-linux-${{ runner.arch }}-opengles.zip
     # linux vulkan tests
     - name: Run Test Suite (vulkan)
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: ${{ runner.arch == 'ARM64' && '0' || '1' }} 
         LOVE_GRAPHICS_VULKAN_ALLOW_SOFTWARE: 1
@@ -254,6 +258,7 @@ jobs:
 
   Windows:
     runs-on: windows-2025
+    timeout-minutes: 45
     permissions:
       checks: write
       pull-requests: write
@@ -449,6 +454,7 @@ jobs:
     # windows opengl tests
     - name: Run Tests (opengl)
       if: steps.vars.outputs.arch != 'ARM64'
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
@@ -480,6 +486,7 @@ jobs:
     - name: Run Tests (opengles)
       if: steps.vars.outputs.arch != 'ARM64'
       id: gles
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: 1
         LOVE_GRAPHICS_USE_OPENGLES: 1
@@ -568,6 +575,7 @@ jobs:
 
   macOS:
     runs-on: macos-latest
+    timeout-minutes: 45
     permissions:
       checks: write
       pull-requests: write
@@ -602,6 +610,7 @@ jobs:
         path: love-macos.zip
     # macos opengl tests
     - name: Run Test Suite (OpenGL)
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
@@ -630,6 +639,7 @@ jobs:
         exit 1
     # macos metal tests
     - name: Run Test Suite (Metal)
+      timeout-minutes: 15
       env:
         LOVE_GRAPHICS_DEBUG: 1
       run: |
