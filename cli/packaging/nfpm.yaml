@@ -12,7 +12,10 @@ description: |
 homepage: https://github.com/MiaGobble/loveu
 license: zlib
 contents:
+  # expand: true is required for ${BINARY} — nfpm does not expand env in
+  # contents.src/dst unless this flag is set (see nfpm docs).
   - src: ${BINARY}
     dst: /usr/bin/loveu
+    expand: true
     file_info:
       mode: 0755
