@@ -1,5 +1,7 @@
 ; loveu CLI Windows installer (NSIS)
-; Build: makensis /DVERSION=0.1.0 /DOUTFILE=loveu-0.1.0-windows-amd64-setup.exe /DSOURCE=path\to\loveu.exe loveu.nsi
+; File and OutFile paths are relative to this script. Pass absolute SOURCE/OUTFILE
+; when building from another directory (as the release workflow does).
+; Build: makensis /DVERSION=0.1.0 /DOUTFILE=/abs/path/setup.exe /DSOURCE=/abs/path/loveu.exe loveu.nsi
 
 !ifndef VERSION
   !define VERSION "0.1.0"

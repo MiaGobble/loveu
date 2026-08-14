@@ -177,10 +177,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y nsis
+          # NSIS File/OutFile paths are relative to the .nsi script, not cwd.
+          SOURCE="$GITHUB_WORKSPACE/dist/loveu-${VER}-windows-amd64.exe"
+          OUTFILE="$GITHUB_WORKSPACE/dist/loveu-${VER}-windows-amd64-setup.exe"
+          if [ ! -f "$SOURCE" ]; then
+            echo "Missing CLI binary for NSIS: $SOURCE" >&2
+            ls -la dist || true
+            exit 1
+          fi
           makensis \
             -DVERSION="$VER" \
-            -DOUTFILE="dist/loveu-${VER}-windows-amd64-setup.exe" \
-            -DSOURCE="dist/loveu-${VER}-windows-amd64.exe" \
+            -DOUTFILE="$OUTFILE" \
+            -DSOURCE="$SOURCE" \
             cli/packaging/nsis/loveu.nsi
 
       - name: SHA256SUMS
