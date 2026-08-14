@@ -6,7 +6,7 @@ Windows typically uses [megasource](https://github.com/love2d/megasource): point
 
 ```
 love --version
-# loveu 0.1.0 (LÖVE 12.0 "Bestest Friend")
+# loveu 0.1.1 (LÖVE 12.0 "Bestest Friend")
 ```
 
 `lovec` is the console binary (stdout/stderr). Use that for headless games (`[modules] window = false`).

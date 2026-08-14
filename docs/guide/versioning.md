@@ -4,12 +4,12 @@ loveu keeps **two** version strings. Do not pin `loveu.toml` to the LÖVE 12 num
 
 | Identifier | Meaning | Current |
 |------------|---------|---------|
-| `love._loveu_version` | Fork semver. **`engine_version` in `loveu.toml` must match this exactly.** | `0.1.0` |
+| `love._loveu_version` | Fork semver. **`engine_version` in `loveu.toml` must match this exactly.** | `0.1.1` |
 | `love._version` | Upstream LÖVE API this build is based on | `12.0` |
 
 ```
 love --version
-# loveu 0.1.0 (LÖVE 12.0 "Bestest Friend")
+# loveu 0.1.1 (LÖVE 12.0 "Bestest Friend")
 ```
 
 ## When to bump
@@ -28,5 +28,5 @@ Boot does **not** use LÖVE’s loose `love.isVersionCompatible` for the manifes
 Mismatches fail immediately:
 
 ```
-loveu.toml engine_version '0.0.0' does not match running loveu '0.1.0'
+loveu.toml engine_version '0.0.0' does not match running loveu '0.1.1'
 ```
